@@ -4,22 +4,30 @@ import random
 from flask import Flask,request
 from flask import jsonify
 import utils
+import audio_recognition
 
-app = Flask(__name__,static_url_path='',root_path='/home/luben3485/college/robot/website')    
+app = Flask(__name__,static_url_path='',root_path='/home/chrisberry/Robot_Smart_Shopping_Cart/UserInterface')    
 #静态模板index.html等都放在‘/home/ronny/mywebsite/static/'下。　路由不用再加’/static/index.html‘而是'index.html'就好
 @app.route('/')
 def index():
-    return app.send_static_file('index.html')
+	return app.send_static_file('index.html')
 
+@app.route('/Ajax_Audio')
+def Ajax_Audio():
+	test = request.args.get('mode')
+	print('Audio recognition...')
+	path = audio_recognition.speechrecognition()	
+	result = {'path':path}
+	return jsonify(result)
 
 @app.route('/dataFromAjax')
 def dataFromAjax():
-    test = request.args.get('mode')
-    x,y = utils.getRandomXY(0,95,0,91)
-    print(x,y)
-    result = {'x':x,'y':y}
-    #result = ['aa',5]
-    return jsonify(result)
+	test = request.args.get('mode')
+	#x,y = utils.getRandomXY(0,95,0,91)
+	#print(x,y)
+	result = {'x':55,'y':72}
+	#result = ['aa',5]
+	return jsonify(result)
 
 
 #有一個route處理語音辨識的訊息，回傳目的地在網頁顯示目標

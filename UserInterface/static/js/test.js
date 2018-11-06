@@ -20,7 +20,27 @@ $(document).ready(function(){
     */
 
     
-
+    var ajax_audio = function(){
+      $.ajax({
+                url: '/Ajax_Audio',
+                type: 'GET',
+                data: {
+                    'mode':1,
+                },
+                error: function(xhr) {
+                    console.log('Ajax Audio 發生錯誤');
+                },
+                success: function(response) {
+                    i = response.path+1;
+        			if(i == 1) show_path1()
+        			else if(i == 2) show_path2()
+        			else if(i == 3) show_path3()
+        			else if(i == 4) show_path4()
+					else if(i == -1) console.log("return:-1")
+                }
+          
+        });
+	};
     var ajax_func = function(){
       $.ajax({
                 url: '/dataFromAjax',
@@ -239,43 +259,10 @@ $(document).ready(function(){
     }, 2000);
     
     $('#search').click(function(){
-        if (!('webkitSpeechRecognition' in window)) {
-            alert('此瀏覽器不支援語音辨識！')      
-        } else {
-            var show = document.getElementById('show');
-            var recognition = new webkitSpeechRecognition()
-            recognition.continuous=true
-            recognition.interimResults=true
-            ecognition.lang="cmn-Hant-TW"
-            
-            recognition.onstart=function(){
-                console.log('開始辨識...')
-                alert('start!')
-            }
-            recognition.onend=function(){
-                console.log('停止辨識!')
-            }
-            recognition.onresult=function(event){
-                var i = event.resultIndex
-                var j = event.results[i].length-1
-                show.innerHTML = event.results[i][j].transcript
-                alert('show!')
-            }
-
-            recognition.start()   
-            
-        }
-        var i = 1
-        if(i == 1) show_path1()
-        else if(i == 2) show_path2()
-        else if(i == 3) show_path3()
-        else if(i == 4) show_path4()
-        //alert('path: '+i)
-        
-        
-        
+   		ajax_audio()     
     });
-     $('#canel').click(function(){
+    
+	 $('#canel').click(function(){
          var canvas = document.getElementById('canvas');
 
             if (canvas.getContext){
@@ -290,7 +277,7 @@ $(document).ready(function(){
         
     });
     $('#showpos').click(function(){
-        alert('x: '+x + '\ny: ' +y)
+        alert('x: '+x + 'y: ' +y)
     });
 
     
