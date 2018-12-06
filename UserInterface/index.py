@@ -6,7 +6,7 @@ from flask import jsonify
 import utils
 import audio_recognition
 
-app = Flask(__name__,static_url_path='',root_path='/home/chrisberry/Robot_Smart_Shopping_Cart/UserInterface')    
+app = Flask(__name__,static_url_path='',root_path='/home/cart/Robot_Smart_Shopping_Cart/UserInterface')    
 #静态模板index.html等都放在‘/home/ronny/mywebsite/static/'下。　路由不用再加’/static/index.html‘而是'index.html'就好
 @app.route('/')
 def index():
