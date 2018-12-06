@@ -1,6 +1,9 @@
+import cv2
 import sys
 import time
 import socket
+import pickle
+import struct
 import threading
 from collections import deque
 
@@ -11,8 +14,8 @@ class serverListenThread (threading.Thread):
         self.name = name
         self.ip = ip
         self.port = port
-        self.listen_socket = creat_TCP_scoket(self.ip, self.port)
-        self.recv_data = None
+        self.listen_socket = creat_TCP_socket(self.ip, self.port)
+        self.recv_data = b""
         print("Seccessfully creat %s listening thread." % self.name)
         self.instruction = deque(maxlen=3)
 
@@ -22,11 +25,13 @@ class serverListenThread (threading.Thread):
             # print("Receiving data...")
             data = self.listen_socket.recv(1024)
             # print("data size: %d", len(data))
+            print("listen get data", data)
             self.recv_data += data
             if not data or len(data) < 1024:
                 print("Update instruction from server %s:%d" % (self.ip, self.port))
                 self.instruction.append(self.recv_data)
                 break
+            time.sleep(0.01)
         print("退出線程：" + self.name)
 
 
@@ -36,7 +41,7 @@ class serverSendThread (threading.Thread):
         self.name = name
         self.ip = ip
         self.port = port
-        self.send_socket = creat_TCP_scoket(self.ip, self.port)
+        self.send_socket = creat_TCP_socket(self.ip, self.port)
         print("Seccessfully creat %s sending thread." % self.name)
         self.frame_queue = deque(maxlen=10)
 
@@ -47,16 +52,23 @@ class serverSendThread (threading.Thread):
                 self.sendImg(self.frame_queue.pop())
             else:
                 pass
-
+            time.sleep(0.01)
         print("退出線程：" + self.name)
 
     def sendImg(self, img):
+        '''
         data = img.read(1024)
         while data:
             # print("Sending data...")
             self.send_socket.send(data)
             # print("data size: %d", len(data))
             data = img.read(1024)
+        '''
+        t_data = pickle.dumps(img)  # new
+        print(len(t_data))
+        start = time.time()
+        self.send_socket.sendall(struct.pack("L", len(t_data)) + t_data)  # new
+        print(time.time() - start)
         print("Successfully send frame")
 
 
@@ -78,13 +90,14 @@ class client():
             return None
 
 
-def creat_TCP_scoket(ip, port):
+def creat_TCP_socket(ip, port):
     SERVER_IP = ip
     SERVER_PORT = port
     print("IP:", SERVER_IP)
     print("Port:", SERVER_PORT)
     print("Create socket:")
     socket_tcp = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0, fileno=None)
+    socket_tcp.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     server_addr = (SERVER_IP, SERVER_PORT)
     while True:
         try:
@@ -105,49 +118,22 @@ def creat_TCP_scoket(ip, port):
 
 if __name__ == '__main__':
     print(1)
-
-
-'''
-origin_img = "test.jpg"
-SERVER_IP = "127.0.0.1"
-SERVER_PORT = 8889
-print("IP:", SERVER_IP)
-print("Port:", SERVER_PORT)
-print("Starting socket:")
-
-# creat socket object
-socket_tcp = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0, fileno=None)
-server_addr = (SERVER_IP, SERVER_PORT)
-
-start = time.time()
-while True:
-    try:
-        print("Conneting to server at %s:%s..." % server_addr)
-        socket_tcp.connect(server_addr)
-        print("connect")
-        socket_tcp.send(b"Hello server")
-        print("Successfully connect to server.")
-        data = socket_tcp.recv(1024)
-        print("Server send:", data)
-        break
-    except Exception:
-        print("Can't connect to server, try it after %d second." % 1)
-        time.sleep(1)
-        continue
-
-with open(origin_img, 'rb') as f:
-    print("Send data from %s" % origin_img)
-    data = f.read(1024)
-    while data:
-        # print("Sending data...")
-        socket_tcp.send(data)
-        # print("data size: %d", len(data))
+    # cart_client = client("Cart 1", "127.0.0.1", 8889, "127.0.0.1", 8899)
+    cart_client = client("Cart 1", "140.116.102.99", 8889, "140.116.102.99", 8899)
+    origin_img = "test.jpg"
+    img = cv2.imread(origin_img)
+    cart_client.send_frame(img)
+    # cart_client.send_frame(img)
+    '''
+    with open(origin_img, 'rb') as f:
+        print("Send data from %s" % origin_img)
         data = f.read(1024)
-    print("Successfully send %s" % origin_img)
-    success_mess = "Successfully send " + origin_img
-    data = socket_tcp.recv(1024)
-    print("Server send:", data)
-    socket_tcp.send(success_mess.encode())
-end = time.time()
-print(end - start)
-'''
+        while data:
+            # print("Sending data...")
+            cart_client.send_frame(data)
+            # print("data size: %d", len(data))
+            data = f.read(1024)
+        print("Successfully send %s" % origin_img)
+    '''
+    mess = cart_client.get_instruction()
+    print("get mess", mess)
