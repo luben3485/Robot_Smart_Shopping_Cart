@@ -12,48 +12,52 @@ class serverListenThread (threading.Thread):
     def __init__(self, name, ip, port):
         threading.Thread.__init__(self)
         self.name = name
+        self.id = '[' + self.name + ']'
         self.ip = ip
         self.port = port
         self.listen_socket = creat_TCP_socket(self.ip, self.port)
         self.recv_data = b""
-        print("Seccessfully creat %s listening thread." % self.name)
+        self.print_msg("Seccessfully creat %s listening thread." % self.name)
         self.instruction = deque(maxlen=3)
 
     def run(self):
-        print("開始線程：" + self.name)
+        self.print_msg("開始線程：" + self.name)
         while True:
             # print("Receiving data...")
             data = self.listen_socket.recv(1024)
             # print("data size: %d", len(data))
-            print("listen get data", data)
+            self.print_msg("listen get data", data)
             self.recv_data += data
             if not data or len(data) < 1024:
-                print("Update instruction from server %s:%d" % (self.ip, self.port))
+                self.print_msg("Update instruction from server %s:%d" % (self.ip, self.port))
                 self.instruction.append(self.recv_data)
-                break
             time.sleep(0.01)
-        print("退出線程：" + self.name)
+        self.print_msg("退出線程：" + self.name)
+
+    def print_msg(self, *args):
+        print(self.id, " ".join(map(str, args)))
 
 
 class serverSendThread (threading.Thread):
     def __init__(self, name, ip, port):
         threading.Thread.__init__(self)
         self.name = name
+        self.id = '[' + self.name + ']'
         self.ip = ip
         self.port = port
         self.send_socket = creat_TCP_socket(self.ip, self.port)
-        print("Seccessfully creat %s sending thread." % self.name)
+        self.print_msg("Seccessfully creat %s sending thread." % self.name)
         self.frame_queue = deque(maxlen=10)
 
     def run(self):
-        print("開始線程：" + self.name)
+        self.print_msg("開始線程：" + self.name)
         while True:
             if len(self.frame_queue) > 0:
                 self.sendImg(self.frame_queue.pop())
             else:
                 pass
             time.sleep(0.01)
-        print("退出線程：" + self.name)
+        self.print_msg("退出線程：" + self.name)
 
     def sendImg(self, img):
         '''
@@ -65,11 +69,14 @@ class serverSendThread (threading.Thread):
             data = img.read(1024)
         '''
         t_data = pickle.dumps(img)  # new
-        print(len(t_data))
+        self.print_msg(len(t_data))
         start = time.time()
         self.send_socket.sendall(struct.pack("L", len(t_data)) + t_data)  # new
-        print(time.time() - start)
-        print("Successfully send frame")
+        self.print_msg(time.time() - start)
+        self.print_msg("Successfully send frame")
+
+    def print_msg(self, *args):
+        print(self.id, " ".join(map(str, args)))
 
 
 class client():
@@ -119,9 +126,23 @@ def creat_TCP_socket(ip, port):
 if __name__ == '__main__':
     print(1)
     # cart_client = client("Cart 1", "127.0.0.1", 8889, "127.0.0.1", 8899)
-    cart_client = client("Cart 1", "140.116.102.99", 8889, "140.116.102.99", 8899)
+    cart_client = client("Cart 1", "127.0.0.1", 8889, "127.0.0.1", 8899)
+    input_source = "foot_test3.mp4"
+    cap = cv2.VideoCapture(input_source)
+    hasFrame, frame = cap.read()
+    if not hasFrame:
+        print("Video can't open!!!")
+    while True:
+        hasFrame, frame = cap.read()
+        if not hasFrame:
+            break
+        cart_client.send_frame(frame)
+        time.sleep(0.0333)
     origin_img = "test.jpg"
     img = cv2.imread(origin_img)
+    cart_client.send_frame(img)
+    cart_client.send_frame(img)
+    cart_client.send_frame(img)
     cart_client.send_frame(img)
     # cart_client.send_frame(img)
     '''
@@ -135,5 +156,5 @@ if __name__ == '__main__':
             data = f.read(1024)
         print("Successfully send %s" % origin_img)
     '''
-    mess = cart_client.get_instruction()
-    print("get mess", mess)
+    # mess = cart_client.get_instruction()
+    # print("get mess", mess)

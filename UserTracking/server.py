@@ -7,6 +7,8 @@ from collections import deque
 import pickle
 import struct
 
+import user_tracking
+
 
 class clientListenThread (threading.Thread):
     def __init__(self, name, ip, port, instruction, frame_queue):
@@ -16,74 +18,45 @@ class clientListenThread (threading.Thread):
         self.ip = ip
         self.port = port
         self.listen_socket = creat_host_TCP_socket(self.ip, self.port)
-        print(self.id, "Seccessfully creat %s listening thread." % self.name)
+        self.print_msg("Seccessfully creat %s listening thread." % self.name)
         self.instruction = instruction
         self.frame_queue = frame_queue
-        print(self.id, "client Listen get id ", id(instruction))
-        print(self.id, "client Listen id ", id(self.instruction))
+        self.print_msg("client Listen get id ", id(instruction))
+        self.print_msg("client Listen id ", id(self.instruction))
 
     def run(self):
+        self.print_msg("開始線程：" + self.name)
         self.listen_socket.listen(1)
         self.client_socket, (self.client_ip, self.client_port) = self.listen_socket.accept()
-        print(self.id, "Connection accepted from %s:%d" % (self.client_ip, self.client_port))
+        self.print_msg("Connection accepted from %s:%d" % (self.client_ip, self.client_port))
         # self.instruction[0] = (b"TTTTTTTTTTest inst")  # TEST
-        origin_img = "origin_img.jpg"
         payload_size = struct.calcsize("L")
+        data = self.client_socket.recv(1024)
+        self.print_msg("Server received:", data)
+        self.client_socket.send(b"Welcome to Cloud Computing Server.")
+        data = b""
         while True:
-            data = self.client_socket.recv(1024)
-            print(self.id,"Server received:", data)
-            self.client_socket.send(b"Welcome to Cloud Computing Server.")
             start = time.time()
-            print(self.id, "開始線程：" + self.name)
-            print(self.id, "Start receive image!")
-            data = b""
-            print(self.id, len(data), payload_size)
+            # self.print_msg("Start receive image!")
             while len(data) < payload_size:
-                print(self.id, 1, len(data))
                 data += self.client_socket.recv(4096)
-            stop1 = time.time()
             packed_msg_size = data[:payload_size]
             data = data[payload_size:]
             msg_size = struct.unpack("L", packed_msg_size)[0]
-            stop2 = time.time()
-            print(self.id, msg_size)
             while len(data) < msg_size:
                 data += self.client_socket.recv(1048576)
             frame_data = data[:msg_size]
             data = data[msg_size:]
-            stop3 = time.time()
-            print(self.id, len(data))
 
             frame = pickle.loads(frame_data)
-            print(self.id, frame.shape)
-            stop4 = time.time()
-            # cv2.imwrite('output.jpg', frame)
-            # cv2.imshow('SERVER', frame)
-            '''
-            with open(origin_img, 'wb') as f:
-                print("Write data to %s" % origin_img)
-                while True:
-                    # print("Receiving data...")
-                    data = self.client_socket.recv(1024)
-                    # print("data size: %d", len(data))
-                    if not data or len(data) < 1024:
-                        break
-                    f.write(data)
-            '''
-            print(self.id, "Successfully get %s" % origin_img)
+            # self.print_msg("Successfully get image :", frame.shape)
             self.frame_queue.append(frame)
-            # success_mess = "Successfully get " + origin_img
-            # self.client_socket.send(success_mess.encode())
-            # data = self.client_socket.recv(1024)
-            # print("Server received:", data)
             end = time.time()
-            print(stop1 - start)
-            print(stop2 - start)
-            print(stop3 - start)
-            print(stop4 - start)
-            print(end - start)
-            break
-        print(self.id, "退出線程：" + self.name)
+            # self.print_msg('spend time:', end - start)
+        self.print_msg("退出線程：" + self.name)
+
+    def print_msg(self, *args):
+        print(self.id, " ".join(map(str, args)))
 
 
 class clientSendThread (threading.Thread):
@@ -109,8 +82,9 @@ class clientSendThread (threading.Thread):
         self.client_socket.send(b"Welcome to Cloud Computing Server.")
         while True:
             if self.instruction[0] is not None:
+                start = time.time()
                 self.client_socket.send(self.instruction[0])
-                self.print_msg("Server send instruction", self.instruction[0])
+                self.print_msg("Server send instruction", self.instruction[0], "spend time:", time.time() - start)
                 self.instruction[0] = None
             else:
                 pass
@@ -129,8 +103,10 @@ class host():
         self.frame_queue = deque(maxlen=10)
         self.listen_thread = clientListenThread(name + "_listen", ip_listen, port_listen, self.instruction, self.frame_queue)
         self.send_thread = clientSendThread(name + "_send", ip_send, port_send, self.instruction)
+        self.decision_thread = user_tracking.decisionThread(name + "_decision", 2, self.instruction, self.frame_queue)
         self.listen_thread.start()
         self.send_thread.start()
+        self.decision_thread.start()
 
     def send_instruction(self, instruction):
         self.instruction[0] = instruction
@@ -158,9 +134,9 @@ def creat_host_TCP_socket(ip, port):
 if __name__ == '__main__':
     print(1)
     # cart_server = host("Host", "127.0.0.1", 8899, "127.0.0.1", 8889)
-    cart_server = host("Host", "140.116.102.99", 8899, "140.116.102.99", 8889)
-    # time.sleep(4)
+    cart_server = host("Host", "127.0.0.1", 8899, "127.0.0.1", 8889)
+    time.sleep(2)
     cart_server.instruction[0] = (b"TTTTest inst")
-    print(id(cart_server.instruction))
-    print(id(cart_server.listen_thread.instruction))
-    print(id(cart_server.send_thread.instruction))
+    print(id(cart_server.frame_queue))
+    print(id(cart_server.listen_thread.frame_queue))
+    print(id(cart_server.decision_thread.frame_queue))
