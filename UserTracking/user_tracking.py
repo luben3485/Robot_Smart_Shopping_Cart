@@ -9,6 +9,7 @@ from collections import deque
 
 import user_detect
 
+log_file = open("server.log", 'w', encoding='utf-8')
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "-image", required=False, help="Path to the image",
                 dest='image')
@@ -52,9 +53,11 @@ class skeletonThread (threading.Thread):
 
         def run(self):
             self.print_msg("開始線程：" + self.name)
+            start = time.time()
             self.hasDetect, self.skeletonPoint, self.x_intercept, self.y_intercept = user_detect.skeletonDetect(self.cacluate_frame)
             self.draw_box()
             self.detect_finish = True
+            self.print_msg("spend time:", time.time() - start)
             self.print_msg("退出線程：" + self.name)
 
         def draw_box(self):
@@ -83,6 +86,7 @@ class skeletonThread (threading.Thread):
 
         def print_msg(self, *args):
             print('[' + self.name + ']', " ".join(map(str, args)))
+            log_file.write('[' + self.name + '] ' + " ".join(map(str, args)) + '\n')
 
 
 class trackingThread (threading.Thread):
@@ -100,6 +104,7 @@ class trackingThread (threading.Thread):
             # bbox = (287, 23, 86, 320)  # (xmin,ymin,boxwidth,boxheight)
             self.frame = frame
             self.name = name
+            self.hasTracking = False
             self.tracking_finish = False
             self.buffer = 64
             self.pts = deque(maxlen=self.buffer)
@@ -116,6 +121,7 @@ class trackingThread (threading.Thread):
             # Draw bounding box
             if ok:
                 # Tracking success
+                self.hasTracking = True
                 p1 = (int(self.bbox[0]), int(self.bbox[1]))
                 p2 = (int(self.bbox[0] + self.bbox[2]), int(self.bbox[1] + self.bbox[3]))
                 center = (int(self.bbox[0] + self.bbox[2] / 2), int(self.bbox[1] + self.bbox[3] / 2))
@@ -134,13 +140,15 @@ class trackingThread (threading.Thread):
                     cv2.line(self.frame, self.pts[i - 1], self.pts[i], (0, 0, 255), thickness)
             else:
                 # Tracking failure
+                self.hasTracking = False
+                self.print_msg("Tracking failed.")
                 cv2.putText(self.frame, "Tracking failure detected", (100, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75,(0,0,255),2)
 
             # Display tracker type on frame
             cv2.putText(self.frame, self.tracker_types[self.tracker_type_no] + " Tracker", (100, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50,170,50),2);
 
             # Display FPS on frame
-            cv2.putText(self.frame, "FPS : " + str(int(fps)), (100, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50,170,50), 2);
+            cv2.putText(self.frame, "FPS : " + str(int(fps)), (100, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50,170,50), 2)
 
             # Display result
             # cv2.imshow("Tracking", self.frame)
@@ -175,6 +183,7 @@ class trackingThread (threading.Thread):
 
         def print_msg(self, *args):
             print('[' + self.name + ']', " ".join(map(str, args)))
+            log_file.write('[' + self.name + '] ' + " ".join(map(str, args)) + '\n')
 
 
 class decisionThread (threading.Thread):
@@ -199,7 +208,11 @@ class decisionThread (threading.Thread):
         self.tracking_thread = trackingThread('Tracking Thread 1', init_frame, (0, 0, 0, 0), rebuild=True)
         self.tracking_thread.start()
         pre_skeleton = []
+        c = 0
+        tracking_tmp = None
+        skeleton_tmp = None
         while True:
+            test_start = time.time()
             frame = self.get_frame()
             if frame is False:
                 self.origin_writer.release()
@@ -208,30 +221,52 @@ class decisionThread (threading.Thread):
                 self.print_msg("Release video writer. Close Thread")
                 break
             self.origin_writer.write(frame)
+            stop1 = time.time()
+            self.print_msg('stop1:', stop1 - test_start)
             if self.skeleton_thread.detect_finish:
                 self.skeleton_thread.join()
                 self.print_msg('Finish detect')
-                self.skeleton_writer.write(frame)
                 if self.skeleton_thread.hasDetect:
+                    self.skeleton_writer.write(self.skeleton_thread.frame)
+                    skeleton_tmp = self.skeleton_thread.frame
                     tracking_box = (self.skeleton_thread.trackingBoxPoints['x_left'], self.skeleton_thread.trackingBoxPoints['y_top'],
                                     self.skeleton_thread.trackingBoxPoints['x_right'] - self.skeleton_thread.trackingBoxPoints['x_left'],
                                     self.skeleton_thread.trackingBoxPoints['y_bottom'] - self.skeleton_thread.trackingBoxPoints['y_top'])
                     pre_skeleton.append([self.skeleton_thread.frame, tracking_box])
                 self.skeleton_thread = skeletonThread('Skeleton Thread 1', frame)
                 self.skeleton_thread.start()
+            else:
+                if skeleton_tmp is None:
+                    self.skeleton_writer.write(frame)
+                self.skeleton_writer.write(skeleton_tmp)
+            stop2 = time.time()
+            self.print_msg('stop2:', stop2 - stop1)
             if self.tracking_thread.tracking_finish:
                 self.tracking_thread.join()
                 print('tracking finish')
-                self.tracking_writer.write(frame)
-                if len(pre_skeleton) > 0:
+                self.tracking_writer.write(self.tracking_thread.frame)
+                tracking_tmp = self.tracking_thread.frame
+                if (not self.tracking_thread.hasTracking or c % 10 == 0) and len(pre_skeleton) > 0:
                     self.tracking_thread = trackingThread('Tracking Thread 1', pre_skeleton[-1][0], pre_skeleton[-1][1], rebuild=True)
-                    while len(pre_skeleton) <= 0:
-                        pre_skeleton.pop()
+                    # while len(pre_skeleton) <= 0:
+                    #    pre_skeleton.pop()#
+                    pre_skeleton.clear()
                 else:
                     self.tracking_thread = trackingThread('Tracking Thread 1', frame, self.tracking_thread.bbox, self.tracking_thread.tracker, rebuild=True)
                 self.tracking_thread.start()
-            time.sleep(0.0333)
+                '''
+            else:
+                if tracking_tmp is None:
+                    self.tracking_writer.write(frame)
+                self.tracking_writer.write(tracking_tmp)
+                '''
+            # time.sleep(0.0333)
+            c += 1
+            stop3 = time.time()
+            self.print_msg('stop3:', stop3 - stop2)
+            self.print_msg('total:', time.time() - test_start)
         self.print_msg("退出線程：" + self.name)
+        self.print_msg("Total frame:", c)
 
     def make_decision(self):
         self.instruction = None  # rewrite the instruction
@@ -280,6 +315,7 @@ class decisionThread (threading.Thread):
 
     def print_msg(self, *args):
         print(self.id, " ".join(map(str, args)))
+        log_file.write(self.id + ' ' + " ".join(map(str, args)) + '\n')
 
 
 if __name__ == "__main__":

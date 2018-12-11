@@ -9,7 +9,7 @@ import struct
 
 import user_tracking
 
-
+log_file = open("server_thread.log", 'w', encoding='utf-8')
 class clientListenThread (threading.Thread):
     def __init__(self, name, ip, port, instruction, frame_queue):
         threading.Thread.__init__(self)
@@ -35,6 +35,7 @@ class clientListenThread (threading.Thread):
         self.print_msg("Server received:", data)
         self.client_socket.send(b"Welcome to Cloud Computing Server.")
         data = b""
+        c = 0
         while True:
             start = time.time()
             # self.print_msg("Start receive image!")
@@ -51,12 +52,15 @@ class clientListenThread (threading.Thread):
             frame = pickle.loads(frame_data)
             # self.print_msg("Successfully get image :", frame.shape)
             self.frame_queue.append(frame)
+            c += 1
             end = time.time()
+            self.print_msg("frame:", c)
             # self.print_msg('spend time:', end - start)
         self.print_msg("退出線程：" + self.name)
 
     def print_msg(self, *args):
         print(self.id, " ".join(map(str, args)))
+        log_file.write(self.id + ' ' + " ".join(map(str, args)) + '\n')
 
 
 class clientSendThread (threading.Thread):
@@ -93,6 +97,7 @@ class clientSendThread (threading.Thread):
 
     def print_msg(self, *args):
         print(self.id, " ".join(map(str, args)))
+        log_file.write(self.id + ' ' + " ".join(map(str, args)) + '\n')
 
 
 class host():

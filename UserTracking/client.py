@@ -125,8 +125,8 @@ def creat_TCP_socket(ip, port):
 
 if __name__ == '__main__':
     print(1)
-    # cart_client = client("Cart 1", "127.0.0.1", 8889, "127.0.0.1", 8899)
     cart_client = client("Cart 1", "127.0.0.1", 8889, "127.0.0.1", 8899)
+    # cart_client = client("Cart 1", "140.116.158.49", 8887, "140.116.158.49", 8787)
     input_source = "foot_test3.mp4"
     cap = cv2.VideoCapture(input_source)
     hasFrame, frame = cap.read()
@@ -138,12 +138,17 @@ if __name__ == '__main__':
             break
         cart_client.send_frame(frame)
         time.sleep(0.0333)
-    origin_img = "test.jpg"
-    img = cv2.imread(origin_img)
-    cart_client.send_frame(img)
-    cart_client.send_frame(img)
-    cart_client.send_frame(img)
-    cart_client.send_frame(img)
+    length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    print(length)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    print("Frames per second using video.get(cv2.CAP_PROP_FPS) : {0}".format(fps))
+
+    #origin_img = "test.jpg"
+    #img = cv2.imread(origin_img)
+    #cart_client.send_frame(img)
+    #cart_client.send_frame(img)
+    #cart_client.send_frame(img)
+    #cart_client.send_frame(img)
     # cart_client.send_frame(img)
     '''
     with open(origin_img, 'rb') as f:
