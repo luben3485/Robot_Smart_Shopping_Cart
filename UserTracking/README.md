@@ -8,3 +8,5 @@ READ ME!
     1. Use getModel.sh to download .caffemodel
     2. Push video file and change input_source to the video name in user_tracking.py 
     3. python3 user_tracking.py then you can get three windows to show the result.
+    4. modify ip and port in client.py & server.py
+    5. start server.py first and then start client.py
