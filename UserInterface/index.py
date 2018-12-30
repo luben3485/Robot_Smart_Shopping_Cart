@@ -5,6 +5,7 @@ from flask import Flask,request
 from flask import jsonify
 import utils
 import audio_recognition
+import barcode
 
 app = Flask(__name__,static_url_path='',root_path='/home/cart/Robot_Smart_Shopping_Cart/UserInterface')    
 #静态模板index.html等都放在‘/home/ronny/mywebsite/static/'下。　路由不用再加’/static/index.html‘而是'index.html'就好
@@ -29,6 +30,11 @@ def dataFromAjax():
 	#result = ['aa',5]
 	return jsonify(result)
 
+@app.route('/Ajax_Barcode')
+def Ajax_Barcode():
+    barcodeData = barcode.barcode()
+    result = {'barcodeData':barcodeData}
+    return jsonify(result)
 
 #有一個route處理語音辨識的訊息，回傳目的地在網頁顯示目標
 #不斷發ajax要求後端目前的座標
