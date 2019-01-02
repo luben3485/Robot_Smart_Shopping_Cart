@@ -187,7 +187,11 @@ if __name__ == '__main__':
         if sonic_instruction:
             cart_client.sonic_thread.clean_instruction()
             final_instruction = sonic_instruction
-        motor_socket.send(final_instruction)
+        if final_instruction is None:
+            motor_socket.send(b"")
+        else:
+            msg = str(final_instruction[0]) + " " + str(final_instruction[1])
+            motor_socket.send(msg)
         time.sleep(0.0333)
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     print(length)
