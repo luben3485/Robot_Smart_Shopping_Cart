@@ -19,7 +19,22 @@ $(document).ready(function(){
     }   
     */
 
-    
+    var Ajax_Barcode = function(){
+      $.ajax({
+                url: '/Ajax_Barcode',
+                type: 'GET',
+                data: {
+                    'mode':1,
+                },
+                error: function(xhr) {
+                    console.log('Ajax request 發生錯誤');
+                },
+                success: function(response) {
+					alert(response.barcodeData)
+                }
+          
+        });
+	};    
     var ajax_audio = function(){
       $.ajax({
                 url: '/Ajax_Audio',
@@ -260,6 +275,9 @@ $(document).ready(function(){
     
     $('#search').click(function(){
    		ajax_audio()     
+    });
+    $('#scan').click(function(){
+   		Ajax_Barcode()     
     });
     
 	 $('#canel').click(function(){

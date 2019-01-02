@@ -1,4 +1,9 @@
- 
+# -*- coding: utf-8 -*- 
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
+
+
 import speech_recognition as sr
 
 def speechrecognition():
