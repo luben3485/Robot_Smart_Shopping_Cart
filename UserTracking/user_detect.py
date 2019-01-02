@@ -126,13 +126,15 @@ if __name__ == '__main__':
             self.detect_finish = True
             print ("退出線程：" + self.name)
 
-    input_source = "foot_test4.mp4"
+    input_source = "video-7.mp4"
     cap = cv2.VideoCapture(input_source)
     hasFrame, frame = cap.read()
     skeleton_thread = skeletonThread(frame, 'Skeleton Thread 1')
     skeleton_thread.start()
     t_start = time.time()
     i = 0
+    result_writer = cv2.VideoWriter('skeleton-detect-demo.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 30, (frame.shape[1], frame.shape[0]))
+    tmp_frame = None
     while cv2.waitKey(30) < 0:
         hasFrame, frame = cap.read()
         if not hasFrame:
@@ -143,13 +145,18 @@ if __name__ == '__main__':
             skeleton_thread.join()
             print('finish detect')
             cv2.imshow('Normal Video', skeleton_thread.frame)
+            tmp_frame = skeleton_thread.frame
+            result_writer.write(skeleton_thread.frame)
             skeleton_thread = skeletonThread(frame, 'Skeleton Thread 1')
             skeleton_thread.start()
+        else:
+            result_writer.write(tmp_frame)
         i += 1
         # hasDetect, skeletonPoint, x_intercept, y_intercept = skeletonDetect(frame)
         time.sleep(0.03)
     print(time.time() - t_start)
     print(i)
+    result_writer.release()
     cv2.waitKey(0)
 
     ###### threading test #####

@@ -1,6 +1,7 @@
 import numpy
 import time
 import math
+import socket
 import threading
 import RPi.GPIO as GPIO
 
@@ -37,6 +38,19 @@ class Ultrasonic():
         return distance
 
 
+def creat_host_TCP_socket(ip, port):
+    HOST_IP = ip
+    HOST_PORT = port
+    print("IP:", HOST_IP)
+    print("Port:", HOST_PORT)
+    print("Create socket:")
+    socket_tcp = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0, fileno=None)
+    socket_tcp.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    host_addr = (HOST_IP, HOST_PORT)
+    socket_tcp.bind(host_addr)
+    return socket_tcp
+
+
 class avoidThread(threading.Thread):
     """docstring for avoidThread
         sensor = [  0,   1,   2,  3,  4,  5]
@@ -53,12 +67,31 @@ class avoidThread(threading.Thread):
         self.dangerDistance = 30
         self.distance = None
         self.decision = None
+        self.send_socket = creat_host_TCP_socket('127.0.0.1', '7788')
+        self.send_socket.listen(1)
+        self.client_socket, (self.client_ip, self.client_port) = self.send_socket.accept()
+        self.print_msg("Connection accepted from %s:%d" % (self.client_ip, self.client_port))
 
     def run(self):
         self.print_msg("開始線程：" + self.name)
         while True:
             self.distance = self.ultrasonic.get_distance()
-            self.decision = self.make_decision()
+            result = self.make_decision()
+            if result is 1:
+                self.decision = [4, 1]
+            elif result is 0:
+                self.decision = None
+            elif result is -1:
+                self.decision = [3, 1]
+            elif result is 2:
+                self.decision = [2, 1]
+            elif result is 3:
+                self.decision = [0, 1]
+            else:
+                self.decision = [0, 1]
+            start = time.time()
+            self.client_socket.send(self.decision)
+            self.print_msg("Server send instruction", self.decision, "spend time:", time.time() - start)
             time.sleep(0.1)
         self.print_msg("退出線程：" + self.name)
 
@@ -70,7 +103,11 @@ class avoidThread(threading.Thread):
             vert_dist.append(distance * math.cos(degree))  # use rad don't use deg
         min_left = min(hori_dist[:len(hori_dist) / 2])
         min_right = min(hori_dist[len(hori_dist) / 2:])
-        if min_left > 60 and min_right > 60:
+        if self.distance[len(hori_dist) / 2 - 1] < 30:
+            return 3  # stop
+        elif self.distance[len(hori_dist) / 2 - 1] > 30 and self.distance[len(hori_dist) / 2 - 1] < 60:
+            return 2  # slow down
+        elif min_left > 60 and min_right > 60:
             return 0  # keep straight
         elif min_left <= 60 and min_right > 60:
             return 1  # turn right
