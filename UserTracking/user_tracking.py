@@ -40,6 +40,7 @@ class skeletonThread (threading.Thread):
             threading.Thread.__init__(self)
             self.print_msg('start detect!')
             self.frame = frame
+            self.origin_frame = frame
             self.name = name
             self.detect_finish = False
             self.hasDetect = None
@@ -90,7 +91,7 @@ class skeletonThread (threading.Thread):
 
 
 class trackingThread (threading.Thread):
-        def __init__(self, name, frame, bbox, tracker=None, rebuild=False, tracker_type_no=2):
+        def __init__(self, name, frame, bbox, moving_path, tracker=None, rebuild=False, tracker_type_no=2):
             threading.Thread.__init__(self)
             self.print_msg('start tracking!')
             self.bbox = bbox  # (xmin,ymin,boxwidth,boxheight)
@@ -108,6 +109,7 @@ class trackingThread (threading.Thread):
             self.tracking_finish = False
             self.buffer = 64
             self.pts = deque(maxlen=self.buffer)
+            self.moving_path = moving_path
 
         def run(self):
             self.print_msg("開始線程：" + self.name)
@@ -126,6 +128,8 @@ class trackingThread (threading.Thread):
                 p2 = (int(self.bbox[0] + self.bbox[2]), int(self.bbox[1] + self.bbox[3]))
                 center = (int(self.bbox[0] + self.bbox[2] / 2), int(self.bbox[1] + self.bbox[3] / 2))
                 cv2.rectangle(self.frame, p1, p2, (255, 0, 0), 2, 1)
+                path_info = [self.bbox[2], self.bbox[3], self.bbox[2] * self.bbox[3], center]
+                self.moving_path.appendleft(path_info)
                 self.pts.appendleft(center)
                 for i in range(1, len(self.pts)):
 
@@ -150,8 +154,6 @@ class trackingThread (threading.Thread):
             # Display FPS on frame
             cv2.putText(self.frame, "FPS : " + str(int(fps)), (100, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50,170,50), 2)
 
-            # Display result
-            # cv2.imshow("Tracking", self.frame)
             self.tracking_finish = True
             self.print_msg("退出線程：" + self.name)
 
@@ -187,25 +189,32 @@ class trackingThread (threading.Thread):
 
 
 class decisionThread (threading.Thread):
-    def __init__(self, name, tracker_type_no, instruction, frame_queue):
+    def __init__(self, name, tracker_type_no, instruction, frame_queue, show_frame):
         threading.Thread.__init__(self)
         self.name = name
         self.id = '[' + self.name + ']'
         self.tracker = self.creatTracker(tracker_type_no)
         self.instruction = instruction
         self.frame_queue = frame_queue
+        self.moving_path = deque(maxlen=10)
         self.print_msg(id(frame_queue))
         self.print_msg(id(self.frame_queue))
+        self.show_frame = show_frame
+        self.width = 0
+        self.height = 0
+        print('ID:', id(self.show_frame), id(show_frame))
 
     def run(self):
         self.print_msg("開始線程：" + self.name)
         init_frame = self.get_frame()
+        self.width = init_frame.shape[1]
+        self.height = init_frame.shape[0]
         self.origin_writer = cv2.VideoWriter('origin-output.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 30, (init_frame.shape[1], init_frame.shape[0]))
         self.skeleton_writer = cv2.VideoWriter('skeleton-output.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 30, (init_frame.shape[1], init_frame.shape[0]))
         self.tracking_writer = cv2.VideoWriter('tracking-output.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 30, (init_frame.shape[1], init_frame.shape[0]))
         self.skeleton_thread = skeletonThread('Skeleton Thread 1', init_frame)
         self.skeleton_thread.start()
-        self.tracking_thread = trackingThread('Tracking Thread 1', init_frame, (0, 0, 0, 0), rebuild=True)
+        self.tracking_thread = trackingThread('Tracking Thread 1', init_frame, (0, 0, 0, 0), self.moving_path, rebuild=True)
         self.tracking_thread.start()
         pre_skeleton = []
         c = 0
@@ -221,6 +230,7 @@ class decisionThread (threading.Thread):
                 self.print_msg("Release video writer. Close Thread")
                 break
             self.origin_writer.write(frame)
+            self.show_frame['origin'] = frame  ####
             stop1 = time.time()
             self.print_msg('stop1:', stop1 - test_start)
             if self.skeleton_thread.detect_finish:
@@ -228,38 +238,41 @@ class decisionThread (threading.Thread):
                 self.print_msg('Finish detect')
                 if self.skeleton_thread.hasDetect:
                     self.skeleton_writer.write(self.skeleton_thread.frame)
+                    self.show_frame['skeleton'] = self.skeleton_thread.frame  ####
                     skeleton_tmp = self.skeleton_thread.frame
                     tracking_box = (self.skeleton_thread.trackingBoxPoints['x_left'], self.skeleton_thread.trackingBoxPoints['y_top'],
                                     self.skeleton_thread.trackingBoxPoints['x_right'] - self.skeleton_thread.trackingBoxPoints['x_left'],
                                     self.skeleton_thread.trackingBoxPoints['y_bottom'] - self.skeleton_thread.trackingBoxPoints['y_top'])
-                    pre_skeleton.append([self.skeleton_thread.frame, tracking_box])
+                    pre_skeleton.append([self.skeleton_thread.origin_frame, tracking_box])
                 self.skeleton_thread = skeletonThread('Skeleton Thread 1', frame)
                 self.skeleton_thread.start()
             else:
                 if skeleton_tmp is None:
                     self.skeleton_writer.write(frame)
+                    self.show_frame['skeleton'] = frame  ####
                 self.skeleton_writer.write(skeleton_tmp)
+                self.show_frame['skeleton'] = self.skeleton_thread.frame  ####
             stop2 = time.time()
             self.print_msg('stop2:', stop2 - stop1)
             if self.tracking_thread.tracking_finish:
                 self.tracking_thread.join()
                 print('tracking finish')
                 self.tracking_writer.write(self.tracking_thread.frame)
+                self.show_frame['tracking'] = self.tracking_thread.frame  ####
                 tracking_tmp = self.tracking_thread.frame
-                if (not self.tracking_thread.hasTracking or c % 10 == 0) and len(pre_skeleton) > 0:
-                    self.tracking_thread = trackingThread('Tracking Thread 1', pre_skeleton[-1][0], pre_skeleton[-1][1], rebuild=True)
-                    # while len(pre_skeleton) <= 0:
-                    #    pre_skeleton.pop()#
+                if self.tracking_thread.hasTracking:
+                    self.tracking_thread = trackingThread('Tracking Thread 1', frame, self.tracking_thread.bbox, self.moving_path, self.tracking_thread.tracker, rebuild=True)
+                    self.make_decision()
+                elif len(pre_skeleton) > 0:
+                    self.tracking_thread = trackingThread('Tracking Thread 1', pre_skeleton[-1][0], pre_skeleton[-1][1], self.moving_path, rebuild=True)
                     pre_skeleton.clear()
                 else:
-                    self.tracking_thread = trackingThread('Tracking Thread 1', frame, self.tracking_thread.bbox, self.tracking_thread.tracker, rebuild=True)
+                    print("None tracking")
                 self.tracking_thread.start()
-                '''
             else:
                 if tracking_tmp is None:
                     self.tracking_writer.write(frame)
                 self.tracking_writer.write(tracking_tmp)
-                '''
             # time.sleep(0.0333)
             c += 1
             stop3 = time.time()
@@ -269,7 +282,39 @@ class decisionThread (threading.Thread):
         self.print_msg("Total frame:", c)
 
     def make_decision(self):
-        self.instruction = None  # rewrite the instruction
+        if len(self.moving_path) > 3:
+            box_area = 0
+            value = 0
+            for i in range(len(self.moving_path)) - 1:
+                box_area += self.moving_path[i+1][2] * (2 - 0.1 * i)
+                value += (2 - 0.1 * i)
+            box_area /= value
+            if self.moving_path[0][3] > box_area * 1.1:
+                self.instruction.append([2, 1])
+            elif self.moving_path[0][3] < box_area * 0.9:
+                self.instruction.append([1, 1])
+            else:
+                pass
+
+            width_intercept = self.moving_path[0][0] - self.width/2
+            height_intercept = self.moving_path[0][1] - self.height/2
+            if abs(width_intercept) > self.width/2 * 0.15:
+                if width_intercept > 0:
+                    self.instruction.append([4, 1])
+                else:
+                    self.instruction.append([3, 1])
+            ### still need improve
+            if abs(width_intercept) > self.width/2 * 0.35 and abs(height_intercept) > self.height/2 * 0.35:
+                self.moving_path.popleft()
+                self.instruction = None
+            if self.moving_path[0][3] > box_area * 1.5:
+                self.moving_path.popleft()
+                self.instruction = None
+            if self.moving_path[0][3] < box_area * 0.5:
+                self.moving_path.popleft()
+                self.instruction = None
+        else:
+            self.instruction = None  # rewrite the instruction
 
     def get_frame(self):
         count = 0

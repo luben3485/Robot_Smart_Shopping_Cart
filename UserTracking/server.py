@@ -89,7 +89,7 @@ class clientSendThread (threading.Thread):
                 start = time.time()
                 self.client_socket.send(self.instruction[0])
                 self.print_msg("Server send instruction", self.instruction[0], "spend time:", time.time() - start)
-                self.instruction[0] = None
+                self.instruction.clear()
             else:
                 pass
             time.sleep(0.01)
@@ -103,12 +103,15 @@ class clientSendThread (threading.Thread):
 class host():
     def __init__(self, name, ip_listen, port_listen, ip_send, port_send):
         self.name = name
+        self.show_frame = {'origin': None,
+                           'skeleton': None,
+                           'tracking': None}
         self.instruction = [None]
         print("HOST id ", id(self.instruction))
         self.frame_queue = deque(maxlen=10)
         self.listen_thread = clientListenThread(name + "_listen", ip_listen, port_listen, self.instruction, self.frame_queue)
         self.send_thread = clientSendThread(name + "_send", ip_send, port_send, self.instruction)
-        self.decision_thread = user_tracking.decisionThread(name + "_decision", 2, self.instruction, self.frame_queue)
+        self.decision_thread = user_tracking.decisionThread(name + "_decision", 2, self.instruction, self.frame_queue, self.show_frame)
         self.listen_thread.start()
         self.send_thread.start()
         self.decision_thread.start()
@@ -145,3 +148,20 @@ if __name__ == '__main__':
     print(id(cart_server.frame_queue))
     print(id(cart_server.listen_thread.frame_queue))
     print(id(cart_server.decision_thread.frame_queue))
+
+    input_source = "video-1.mp4"
+    cap = cv2.VideoCapture(input_source)
+    hasFrame, frame = cap.read()
+    cv2.namedWindow("Origin", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Origin", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
+    cv2.namedWindow("Skeleton", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Skeleton", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
+    cv2.namedWindow("Tracking", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Tracking", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
+    while cart_server.show_frame['origin'] is None:
+        time.sleep(0.1)
+    print('ID:', id(cart_server.show_frame))
+    while cv2.waitKey(30) < 0:
+        cv2.imshow("Origin", cart_server.show_frame['origin'])
+        cv2.imshow('Skeleton', cart_server.show_frame['skeleton'])
+        cv2.imshow("Tracking", cart_server.show_frame['tracking'])

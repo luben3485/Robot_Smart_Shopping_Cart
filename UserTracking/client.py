@@ -7,6 +7,8 @@ import struct
 import threading
 from collections import deque
 
+import object_avoid
+
 
 class serverListenThread (threading.Thread):
     def __init__(self, name, ip, port):
@@ -30,9 +32,15 @@ class serverListenThread (threading.Thread):
             self.recv_data += data
             if not data or len(data) < 1024:
                 self.print_msg("Update instruction from server %s:%d" % (self.ip, self.port))
-                self.instruction.append(self.recv_data)
+                self.instruction.appendleft(self.recv_data)
             time.sleep(0.01)
         self.print_msg("退出線程：" + self.name)
+
+    def get_instruction(self):
+        return self.instruction[0]
+
+    def clean_instruction(self):
+        self.instruction.clear()
 
     def print_msg(self, *args):
         print(self.id, " ".join(map(str, args)))
@@ -84,8 +92,14 @@ class client():
         self.name = name
         self.listen_thread = serverListenThread(name + "_listen", ip_listen, port_listen)
         self.send_thread = serverSendThread(name + "_send", ip_send, port_send)
+        pins = [[23, 24], [15, 16]]
+        degrees = [-60, -45, -30, 30, 45, 60]
+        self.avoid_thread = object_avoid.avoidThread('Sonic', pins, degrees)
+        self.sonic_thread = serverListenThread(name + "_listen", '127.0.0.1', '7788')
         self.listen_thread.start()
         self.send_thread.start()
+        self.avoid_thread.start()
+        self.sonic_thread.start()
 
     def send_frame(self, img):
         self.send_thread.frame_queue.append(img)
@@ -123,11 +137,38 @@ def creat_TCP_socket(ip, port):
     return socket_tcp
 
 
+def creat_motor_socket(ip, port):  # create socket
+    SERVER_IP = ip
+    SERVER_PORT = port
+    print("IP:", SERVER_IP)
+    print("Port:", SERVER_PORT)
+    print("Create socket:")
+    socket_tcp = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0, fileno=None)
+    socket_tcp.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    server_addr = (SERVER_IP, SERVER_PORT)
+    while True:
+        try:
+            print("Conneting to server at %s:%s..." % server_addr)
+            socket_tcp.connect(server_addr)
+            print("connect")
+            socket_tcp.send(b"Hello server")
+            print("Successfully connect to server %s:%d" % (SERVER_IP, SERVER_PORT))
+            data = socket_tcp.recv(1024)
+            print("Server send:", data)
+            break
+        except Exception:
+            print("Can't connect to server %s:%s, try it after %d second." % (SERVER_IP, SERVER_PORT, 1))
+            time.sleep(1)
+            continue
+    return socket_tcp
+
+
 if __name__ == '__main__':
     print(1)
     cart_client = client("Cart 1", "127.0.0.1", 8889, "127.0.0.1", 8899)
     # cart_client = client("Cart 1", "140.116.158.49", 8887, "140.116.158.49", 8787)
-    input_source = "foot_test3.mp4"
+    motor_socket = creat_motor_socket("127.0.0.1", 7878)  # create socket: connect to 127.0.0.1 at port:7878
+    input_source = "video-7.mp4"
     cap = cv2.VideoCapture(input_source)
     hasFrame, frame = cap.read()
     if not hasFrame:
@@ -137,6 +178,20 @@ if __name__ == '__main__':
         if not hasFrame:
             break
         cart_client.send_frame(frame)
+        final_instruction = None
+        tracking_instruction = cart_client.listen_thread.get_instruction()
+        sonic_instruction = cart_client.sonic_thread.get_instruction()
+        if tracking_instruction:
+            cart_client.listen_thread.clean_instruction()
+            final_instruction = tracking_instruction
+        if sonic_instruction:
+            cart_client.sonic_thread.clean_instruction()
+            final_instruction = sonic_instruction
+        if final_instruction is None:
+            motor_socket.send(b"")
+        else:
+            msg = str(final_instruction[0]) + " " + str(final_instruction[1])
+            motor_socket.send(msg)
         time.sleep(0.0333)
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     print(length)
