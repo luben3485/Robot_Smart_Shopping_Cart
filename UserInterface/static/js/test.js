@@ -46,7 +46,9 @@ $(document).ready(function(){
                     console.log('Ajax Audio 發生錯誤');
                 },
                 success: function(response) {
+					console.log('success getting from audio');
                     i = response.path+1;
+					console.log("path:"+i);
         			if(i == 1) show_path1()
         			else if(i == 2) show_path2()
         			else if(i == 3) show_path3()
@@ -271,7 +273,7 @@ $(document).ready(function(){
         ajax_func()
         
         
-    }, 2000);
+    }, 4000);
     
     $('#search').click(function(){
    		ajax_audio()     

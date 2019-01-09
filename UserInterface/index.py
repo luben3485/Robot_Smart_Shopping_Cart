@@ -25,8 +25,33 @@ def Ajax_Audio():
 def dataFromAjax():
 	test = request.args.get('mode')
 	#x,y = utils.getRandomXY(0,95,0,91)
+	R1,R2,R3 = utils.RSSI_ave()
+	D1 = utils.RssiToDistance(R1) 
+	D2 = utils.RssiToDistance(R2) 
+	D3 = utils.RssiToDistance(R3) 
+	print("Distance D1:%f D2:%f D3:%f" %(D1,D2,D3))	
+	x,y = utils.trilateration(D1,D2,D3)
+	#print("location")
+	print("real coordinate x: %f y: %f" %(x,y))
+	#map_w = 6.6
+	#map_l = 10.5
+	map_w = 4
+	map_l = 4
 	#print(x,y)
-	result = {'x':55,'y':72}
+	x_ = 100*x/map_l
+	y_ = 100*y/map_w
+
+	if x_ < 0 :
+		x_ = 2
+	elif x_ > 100:
+		x_ = 85
+	if y_ < 0 :
+		y_ = 0
+	elif y_ > 100:
+		y_ = 85
+
+	print("web map x: %f y: %f" %(x_,y_))
+	result = {'x':x_,'y':y_}
 	#result = ['aa',5]
 	return jsonify(result)
 
@@ -42,5 +67,5 @@ def Ajax_Barcode():
 
 
 if __name__ == '__main__':
-	app.run()
+	app.run(threaded=True,debug=False)
 	#app.run(host='0.0.0.0',port=8081,debug=False)
