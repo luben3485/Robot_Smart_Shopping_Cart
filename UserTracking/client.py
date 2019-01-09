@@ -11,7 +11,7 @@ import object_avoid
 
 
 class serverListenThread (threading.Thread):
-    def __init__(self, name, ip, port):
+    def __init__(self, name, ip, port, from_sonic=False):
         threading.Thread.__init__(self)
         self.name = name
         self.id = '[' + self.name + ']'
@@ -31,13 +31,18 @@ class serverListenThread (threading.Thread):
             self.print_msg("listen get data", data)
             self.recv_data += data
             if not data or len(data) < 1024:
+                if from_sonic is True:
+                    self.recv_data = pickle.loads(self.recv_data)
                 self.print_msg("Update instruction from server %s:%d" % (self.ip, self.port))
                 self.instruction.appendleft(self.recv_data)
             time.sleep(0.01)
         self.print_msg("退出線程：" + self.name)
 
-    def get_instruction(self):
-        return self.instruction[0]
+    def get_instruction(self, from_sonic=False):
+        if len(self.instruction) > 0:
+            return self.instruction[0]
+        else:
+            return None
 
     def clean_instruction(self):
         self.instruction.clear()
@@ -95,10 +100,10 @@ class client():
         pins = [[23, 24], [15, 16]]
         degrees = [-60, -45, -30, 30, 45, 60]
         self.avoid_thread = object_avoid.avoidThread('Sonic', pins, degrees)
-        self.sonic_thread = serverListenThread(name + "_listen", '127.0.0.1', '7788')
+        self.avoid_thread.start()
+        self.sonic_thread = serverListenThread(name + "_listen", '127.0.0.1', 7788, from_sonic=True)
         self.listen_thread.start()
         self.send_thread.start()
-        self.avoid_thread.start()
         self.sonic_thread.start()
 
     def send_frame(self, img):
@@ -142,9 +147,11 @@ def creat_motor_socket(ip, port):  # create socket
     SERVER_PORT = port
     print("IP:", SERVER_IP)
     print("Port:", SERVER_PORT)
-    print("Create socket:")
+    print("Create motor socket:")
     socket_tcp = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0, fileno=None)
+    print("motor tcp socket")
     socket_tcp.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    print("set socket")
     server_addr = (SERVER_IP, SERVER_PORT)
     while True:
         try:
@@ -160,6 +167,7 @@ def creat_motor_socket(ip, port):  # create socket
             print("Can't connect to server %s:%s, try it after %d second." % (SERVER_IP, SERVER_PORT, 1))
             time.sleep(1)
             continue
+    print("get motor")
     return socket_tcp
 
 

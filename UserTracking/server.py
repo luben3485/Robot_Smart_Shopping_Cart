@@ -85,7 +85,7 @@ class clientSendThread (threading.Thread):
         self.print_msg("Server received:", data)
         self.client_socket.send(b"Welcome to Cloud Computing Server.")
         while True:
-            if self.instruction[0] is not None:
+            if len(self.instruction) > 0 and self.instruction[0] is not None:
                 start = time.time()
                 self.client_socket.send(self.instruction[0])
                 self.print_msg("Server send instruction", self.instruction[0], "spend time:", time.time() - start)
@@ -141,8 +141,9 @@ def creat_host_TCP_socket(ip, port):
 
 if __name__ == '__main__':
     print(1)
-    # cart_server = host("Host", "127.0.0.1", 8899, "127.0.0.1", 8889)
     cart_server = host("Host", "127.0.0.1", 8899, "127.0.0.1", 8889)
+    # cart_server = host("Host", "140.116.102.106", 8899, "140.116.102.106", 8889)
+    # cart_server = host("Host", "127.0.0.1", 8899, "127.0.0.1", 8889)
     time.sleep(2)
     cart_server.instruction[0] = (b"TTTTest inst")
     print(id(cart_server.frame_queue))
@@ -152,16 +153,17 @@ if __name__ == '__main__':
     input_source = "video-1.mp4"
     cap = cv2.VideoCapture(input_source)
     hasFrame, frame = cap.read()
-    cv2.namedWindow("Origin", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("Origin", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
-    cv2.namedWindow("Skeleton", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("Skeleton", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
-    cv2.namedWindow("Tracking", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("Tracking", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
+#cv2.namedWindow("Origin", cv2.WINDOW_NORMAL)
+#cv2.resizeWindow("Origin", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
+#cv2.namedWindow("Skeleton", cv2.WINDOW_NORMAL)
+#cv2.resizeWindow("Skeleton", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
+#cv2.namedWindow("Tracking", cv2.WINDOW_NORMAL)
+#cv2.resizeWindow("Tracking", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
     while cart_server.show_frame['origin'] is None:
         time.sleep(0.1)
     print('ID:', id(cart_server.show_frame))
     while cv2.waitKey(30) < 0:
-        cv2.imshow("Origin", cart_server.show_frame['origin'])
-        cv2.imshow('Skeleton', cart_server.show_frame['skeleton'])
-        cv2.imshow("Tracking", cart_server.show_frame['tracking'])
+#cv2.imshow("Origin", cart_server.show_frame['origin'])
+#        cv2.imshow('Skeleton', cart_server.show_frame['skeleton'])
+#        cv2.imshow("Tracking", cart_server.show_frame['tracking'])
+        pass

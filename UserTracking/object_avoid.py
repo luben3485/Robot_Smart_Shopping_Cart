@@ -2,8 +2,9 @@ import numpy
 import time
 import math
 import socket
+import pickle
 import threading
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
 
 
 log_file = open("avoid.log", 'w', encoding='utf-8')
@@ -13,7 +14,7 @@ class Ultrasonic():
     def __init__(self, pins):
         # pins = [(trigger_pin, echo_pin), (trigger_pin, echo_pin)]
         self.pins = pins
-
+    '''
     def send_tigger_pulse(trigger_pin):
         GPIO.output(trigger_pin, True)
         time.sleep(0.001)
@@ -23,9 +24,10 @@ class Ultrasonic():
         count = timeout
         while GPIO.input(echo_pin) != value and count > 0:
             count -= 1
-
+    '''
     def get_distance(self):
-        distance = []
+        distance = [61,61,61,61,61,61]
+        '''
         for pair in self.pins:
             self.send_tigger_pulse(pair[0])
             self.wait_for_echo(pair[1], True, 5000)
@@ -35,6 +37,7 @@ class Ultrasonic():
             pulse_len = finish - start
             distance_cm = pulse_len * 340 * 100 / 2
             distance.append(distance_cm)
+        '''
         return distance
 
 
@@ -67,12 +70,12 @@ class avoidThread(threading.Thread):
         self.dangerDistance = 30
         self.distance = None
         self.decision = None
-        self.send_socket = creat_host_TCP_socket('127.0.0.1', '7788')
+        self.send_socket = creat_host_TCP_socket('127.0.0.1', 7788)
+
+    def run(self):
         self.send_socket.listen(1)
         self.client_socket, (self.client_ip, self.client_port) = self.send_socket.accept()
         self.print_msg("Connection accepted from %s:%d" % (self.client_ip, self.client_port))
-
-    def run(self):
         self.print_msg("開始線程：" + self.name)
         while True:
             self.distance = self.ultrasonic.get_distance()
@@ -90,7 +93,7 @@ class avoidThread(threading.Thread):
             else:
                 self.decision = [0, 1]
             start = time.time()
-            self.client_socket.send(self.decision)
+            self.client_socket.send(pickle.dumps(self.decision))
             self.print_msg("Server send instruction", self.decision, "spend time:", time.time() - start)
             time.sleep(0.1)
         self.print_msg("退出線程：" + self.name)
@@ -98,14 +101,14 @@ class avoidThread(threading.Thread):
     def make_decision(self):
         hori_dist = []
         vert_dist = []
-        for distance, degree in self.distance, self.degree:
-            hori_dist.append(distance * math.sin(degree))  # use rad don't use deg
-            vert_dist.append(distance * math.cos(degree))  # use rad don't use deg
-        min_left = min(hori_dist[:len(hori_dist) / 2])
-        min_right = min(hori_dist[len(hori_dist) / 2:])
-        if self.distance[len(hori_dist) / 2 - 1] < 30:
+        for i in range(len(self.distance)):
+            hori_dist.append(self.distance[i] * math.sin(self.degree[i]))  # use rad don't use deg
+            vert_dist.append(self.distance[i] * math.cos(self.degree[i]))  # use rad don't use deg
+        min_left = min(hori_dist[:int(len(hori_dist) / 2)])
+        min_right = min(hori_dist[int(len(hori_dist) / 2):])
+        if self.distance[int(len(hori_dist) / 2) - 1] < 30:
             return 3  # stop
-        elif self.distance[len(hori_dist) / 2 - 1] > 30 and self.distance[len(hori_dist) / 2 - 1] < 60:
+        elif self.distance[int(len(hori_dist) / 2) - 1] > 30 and self.distance[int(len(hori_dist) / 2) - 1] < 60:
             return 2  # slow down
         elif min_left > 60 and min_right > 60:
             return 0  # keep straight
