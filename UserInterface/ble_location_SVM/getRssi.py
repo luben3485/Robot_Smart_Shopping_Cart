@@ -3,7 +3,7 @@ import kalman_filter
 
 feature = []
 y = []
-num = 2
+num = 17
 for i in range(10):
 	print("Fuck:"+str(i+1))
 	R1,R2,R3,R4,R5,R6 = kalman_filter.rssi_kalman_filter()
