@@ -30,7 +30,7 @@ class clientListenThread (threading.Thread):
         self.client_socket, (self.client_ip, self.client_port) = self.listen_socket.accept()
         self.print_msg("Connection accepted from %s:%d" % (self.client_ip, self.client_port))
         # self.instruction[0] = (b"TTTTTTTTTTest inst")  # TEST
-        payload_size = struct.calcsize("L")
+        payload_size = struct.calcsize("I")
         data = self.client_socket.recv(1024)
         self.print_msg("Server received:", data)
         self.client_socket.send(b"Welcome to Cloud Computing Server.")
@@ -39,13 +39,18 @@ class clientListenThread (threading.Thread):
         while True:
             start = time.time()
             # self.print_msg("Start receive image!")
+            self.print_msg('all number', len(data), payload_size)
             while len(data) < payload_size:
                 data += self.client_socket.recv(4096)
             packed_msg_size = data[:payload_size]
+            self.print_msg('pms', packed_msg_size)
             data = data[payload_size:]
-            msg_size = struct.unpack("L", packed_msg_size)[0]
+            msg_size = struct.unpack("I", packed_msg_size)[0]
+            self.print_msg("size:", msg_size)
             while len(data) < msg_size:
-                data += self.client_socket.recv(1048576)
+                # data += self.client_socket.recv(1048576)
+                # print(len(data))
+                data += self.client_socket.recv(131072)
             frame_data = data[:msg_size]
             data = data[msg_size:]
 
@@ -141,8 +146,8 @@ def creat_host_TCP_socket(ip, port):
 
 if __name__ == '__main__':
     print(1)
-    cart_server = host("Host", "127.0.0.1", 8899, "127.0.0.1", 8889)
-    # cart_server = host("Host", "140.116.102.106", 8899, "140.116.102.106", 8889)
+    # cart_server = host("Host", "127.0.0.1", 8899, "127.0.0.1", 8889)
+    cart_server = host("Host", "192.168.0.4", 8899, "192.168.0.4", 8889)
     # cart_server = host("Host", "127.0.0.1", 8899, "127.0.0.1", 8889)
     time.sleep(2)
     cart_server.instruction[0] = (b"TTTTest inst")
