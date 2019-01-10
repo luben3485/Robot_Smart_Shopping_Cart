@@ -1,7 +1,7 @@
-#import time
-#from bluepy.btle import Scanner, DefaultDelegate
-import rssi_
-rssi_.RSSI(1)
-#print(A)
-#A,B,C = rssi.RSSI()
-#print(A,B,C)
+import utils
+
+
+R1,R2,R3 = utils.RSSI_ave()
+print(R1,R2,R3)
+#x,y = utils.trilateration(R1,R2,R3)
+#print(x,y)

@@ -13,11 +13,15 @@ body .div1 {
     
 }
 .div2{
-    background-color:white;
-    width:2vw;
-    position:absolute;
-    top:51vh;
-    left:40vw;
+	background-image:url(../images/cart.png);
+    background-color: transparent;
+    /*background-color: white;*/
+	background-size:100% 100%;
+	width:8vw;
+    height:8vw;
+	position:absolute;
+    top:30vh;
+    left:2vw;
     
 }
 body .menu{
