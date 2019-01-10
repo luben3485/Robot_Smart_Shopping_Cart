@@ -1,6 +1,7 @@
 import random
 import rssi_
 import math
+
 def RSSI_ave():
 	count1 = 0
 	count2 = 0
@@ -20,19 +21,21 @@ def RSSI_ave():
 			if device.addr == u'20:c3:8f:8d:7c:55':
 				count3 += 1
 				R3 += device.rssi
-		print(count1,count2,count3)
-		if count1 >= 3 and count2 >= 3 and count3 >=3:
+			#print(count1,count2,count3)
+		if count1 >= 1 and count2 >= 1 and count3 >= 1:
 			break
+	
 	R1_ave = R1/count1
 	R2_ave = R2/count2
 	R3_ave = R3/count3
-	print( "RSSI R1:%d R2:%d R3:%d" %(R1_ave,R2_ave,R3_ave))
-	return R1_ave,R2_ave,R3_ave
+	
+	#print( "RSSI R1:%d R2:%d R3:%d" %(R1,R2,R3))
+	#print( "RSSI R1:%d" %R1)
+	return R1_ave, R2_ave, R3_ave
 def RssiToDistance(rssi):
 	txPower = -30
 	ratio = rssi*1.0/txPower
-	#distance = 0.02255*math.pow(ratio,6.00016)-0.39841
-	distance = 0.00000346594*math.pow(ratio,14.21894)+0.17577
+	distance = 0.02255*math.pow(ratio,6.00016)-0.39841
 	return distance
 	
 	
@@ -54,5 +57,3 @@ def trilateration(r1,r2,r3):
 	x = (r1*r1 - r2*r2 + d*d)/(2*d)
 	y = (r1*r1 -r3*r3-x*x +(x-i)*(x-i) +j*j)/(2*j)
 	return x ,y
-
-	

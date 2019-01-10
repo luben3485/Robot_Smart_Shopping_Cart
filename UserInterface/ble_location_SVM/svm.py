@@ -18,10 +18,18 @@ for i in range(1,17):
 #print(x.shape)
 #print(y)
 #print(y.shape)
-x = preprocessing.scale(x)
-x_train , x_test, y_train, y_test = train_test_split(x , y , test_size = 0.2)
 
-svc = svm.SVC(kernel='linear',degree=3 ,C=1, gamma=1)
+#print(x[0:1])
+#print(preprocessing.scale(x[0:1]))
+
+
+#x = preprocessing.scale(x)
+#print(x)
+#x = (x - x.min(1).reshape(-1,1))/(x.max(1).reshape(-1,1)-x.min(1).reshape(-1,1))
+#print(x)
+x_train , x_test, y_train, y_test = train_test_split(x , y , test_size = 0.1)
+
+svc = svm.SVC(kernel='linear',degree=3 ,C=0.3, gamma=1)
 svc_fit = svc.fit(x_train, y_train)
 
 y_predicted = svc.predict(x_test)

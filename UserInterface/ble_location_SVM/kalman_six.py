@@ -1,8 +1,8 @@
 import random
-import rssi_
+import rssi_six
 import math
 
-def RSSI_ave():
+def RSSI_ave_six():
 	count1 = 0
 	count2 = 0
 	count3 = 0
@@ -16,7 +16,7 @@ def RSSI_ave():
 	R5 = 0
 	R6 = 0
 	while 1:
-		devices = rssi_.RSSI()
+		devices = rssi_six.RSSI()
 		for device in devices:
 			if device.addr == u'20:c3:8f:8d:82:d3':
 				count1 += 1
