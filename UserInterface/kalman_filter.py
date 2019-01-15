@@ -59,6 +59,6 @@ for i in range(30):
 	total2 += b[0]
 	total3 += c[0]
 	print("Beacon 1: Before:%d, After:%d, Current Average:%d" %(R1, a[0], total1/(i+1)))
-	print("Beacon 2: Before:%d, After:%d, Current Average:%d" %(R2, b[0], total2/(i+1)))
-	print("Beacon 3: Before:%d, After:%d, Current Average:%d" %(R3, c[0], total3/(i+1)))
+#	print("Beacon 2: Before:%d, After:%d, Current Average:%d" %(R2, b[0], total2/(i+1)))
+#	print("Beacon 3: Before:%d, After:%d, Current Average:%d" %(R3, c[0], total3/(i+1)))
 print("Average:%d, %d, %d" %(total1/30, total2/30, total3/30))

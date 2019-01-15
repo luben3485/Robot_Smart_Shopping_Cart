@@ -273,7 +273,7 @@ $(document).ready(function(){
         ajax_func()
         
         
-    }, 4000);
+    }, 10000);
     
     $('#search').click(function(){
    		ajax_audio()     
