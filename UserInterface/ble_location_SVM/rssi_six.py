@@ -18,7 +18,7 @@ def RSSI():
 	time_diff = 0
 	first_time =1
 
-	devices = scanner.scan(1)
+	devices = scanner.scan(0.35)
 	devices_selected = []
 	for device in devices:
 		if device.addr == u'20:c3:8f:8d:82:d3' or device.addr == u'20:c3:8f:8d:7e:40' or device.addr==u'20:c3:8f:8d:7c:55'or device.addr==u'20:c3:8f:8d:7e:31'or device.addr==u'20:c3:8f:8d:91:7e'or device.addr==u'20:c3:8f:8d:82:d0':
