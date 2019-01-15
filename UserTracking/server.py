@@ -39,7 +39,6 @@ class clientListenThread (threading.Thread):
         while True:
             start = time.time()
             # self.print_msg("Start receive image!")
-            self.print_msg('all number', len(data), payload_size)
             while len(data) < payload_size:
                 data += self.client_socket.recv(4096)
             packed_msg_size = data[:payload_size]
@@ -82,8 +81,6 @@ class clientSendThread (threading.Thread):
         self.send_socket = creat_host_TCP_socket(self.ip, self.port)
         self.print_msg("Seccessfully creat %s listening thread." % self.name)
         self.instruction = instruction
-        self.print_msg("client send get id ", id(instruction))
-        self.print_msg("client send id ", id(self.instruction))
 
     def run(self):
         self.send_socket.listen(1)
@@ -156,10 +153,7 @@ if __name__ == '__main__':
     # cart_server = host("Host", "192.168.137.147", 8899, "192.168.137.147", 8889)
     # cart_server = host("Host", "127.0.0.1", 8899, "127.0.0.1", 8889)
     time.sleep(2)
-    cart_server.instruction.append(b"TTTTest inst")
-    print(id(cart_server.frame_queue))
-    print(id(cart_server.listen_thread.frame_queue))
-    print(id(cart_server.decision_thread.frame_queue))
+    cart_server.instruction.append(b"Test inst")
 
     input_source = "video-1.mp4"
     cap = cv2.VideoCapture(input_source)
