@@ -3,6 +3,7 @@ import rssi_six
 import math
 
 def RSSI_ave_six():
+	iteration = 0
 	count1 = 0
 	count2 = 0
 	count3 = 0
@@ -16,6 +17,7 @@ def RSSI_ave_six():
 	R5 = 0
 	R6 = 0
 	while 1:
+		iteration +=1
 		devices = rssi_six.RSSI()
 		for device in devices:
 			if device.addr == u'20:c3:8f:8d:82:d3':
@@ -37,6 +39,26 @@ def RSSI_ave_six():
 				count6 += 1
 				R6 += device.rssi
 			print(count1,count2,count3,count4,count5,count6)
+		if iteration >=10:
+			if count1 == 0:
+				R1 = -80
+				count1 = 1
+			if count2 == 0:
+				R2 = -80
+				count2 = 1
+			if count3 == 0:
+				R3 = -80
+				count3 = 1
+			if count4 == 0:
+				R4 = -80
+				count4 = 1
+			if count5 == 0:
+				R5 = -80
+				count5 = 1
+			if count6 == 0:
+				R6 = -80
+				count6 = 1
+			break
 		if count1 >= 1 and count2 >= 1 and count3 >= 1 and count4 >=1 and count5 >=1 and count6>=1:
 			break
 	

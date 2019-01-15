@@ -49,12 +49,12 @@ $(document).ready(function(){
                 success: function(response) {
 					console.log('success getting from audio');
                     path = response.path+1;
-					console.log("path:"+i);
+					console.log("path:"+path);
         			if(path == 1) show_path1()
         			else if(path == 2) show_path2()
         			else if(path == 3) show_path3()
         			else if(path == 4) show_path4()
-					else if(path == 0) console.log("return:-1")
+					else if(path == 0) console.log("audio eturn:-1")
                 }
           
         });
@@ -83,6 +83,7 @@ $(document).ready(function(){
                         ctx.canvas.width  = width;
                         ctx.canvas.height = height;
                     }
+					console.log("1122")
                     if(path == 1) show_path1()
         			else if(path == 2) show_path2()
         			else if(path == 3) show_path3()
@@ -288,7 +289,7 @@ $(document).ready(function(){
         ajax_func()
         
         
-    }, 10000);
+    }, 8000);
     
     $('#search').click(function(){
    		ajax_audio()     

@@ -2,9 +2,9 @@ from sklearn.externals import joblib
 import numpy as np
 
 def load_svm(R1,R2,R3,R4,R5,R6):
-	svc_fit = joblib.load('ble_location_SVM/model/svc_001.pkl') 
+	fit = joblib.load('ble_location_SVM/model/svc_0115.pkl') 
 	x=np.array([[R1,R2,R3,R4,R5,R6]])
-	region = svc_fit.predict(x)[0]
+	region = fit.predict(x)[0]
 	print("predict region: %d "%(region))
 	x = 0
 	y = 0
