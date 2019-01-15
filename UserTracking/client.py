@@ -21,6 +21,7 @@ class serverListenThread (threading.Thread):
         self.recv_data = b""
         self.print_msg("Seccessfully creat %s listening thread." % self.name)
         self.instruction = deque(maxlen=3)
+        self.from_sonic = from_sonic
 
     def run(self):
         self.print_msg("開始線程：" + self.name)
@@ -31,7 +32,7 @@ class serverListenThread (threading.Thread):
             self.print_msg("listen get data", data)
             self.recv_data += data
             if not data or len(data) < 1024:
-                if from_sonic is True:
+                if self.from_sonic is True:
                     self.recv_data = pickle.loads(self.recv_data)
                 self.print_msg("Update instruction from server %s:%d" % (self.ip, self.port))
                 self.instruction.appendleft(self.recv_data)
@@ -173,8 +174,8 @@ def creat_motor_socket(ip, port):  # create socket
 
 if __name__ == '__main__':
     print(1)
-    cart_client = client("Cart 1", "127.0.0.1", 8889, "127.0.0.1", 8899)
-    # cart_client = client("Cart 1", "140.116.158.49", 8887, "140.116.158.49", 8787)
+    # cart_client = client("Cart 1", "127.0.0.1", 8889, "127.0.0.1", 8899)
+    cart_client = client("Cart 1", "140.116.158.49", 8887, "140.116.158.49", 8787)
     motor_socket = creat_motor_socket("127.0.0.1", 7878)  # create socket: connect to 127.0.0.1 at port:7878
     input_source = "video-7.mp4"
     cap = cv2.VideoCapture(input_source)

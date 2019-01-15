@@ -286,13 +286,13 @@ class decisionThread (threading.Thread):
         if len(self.moving_path) > 3:
             box_area = 0
             value = 0
-            for i in range(len(self.moving_path) - 1)1:
+            for i in range(len(self.moving_path) - 1):
                 box_area += self.moving_path[i+1][2] * (2 - 0.1 * i)
                 value += (2 - 0.1 * i)
             box_area /= value
-            if self.moving_path[0][3] > box_area * 1.1:
+            if self.moving_path[0][2] > box_area * 1.1:
                 self.instruction.append([2, 1])
-            elif self.moving_path[0][3] < box_area * 0.9:
+            elif self.moving_path[0][2] < box_area * 0.9:
                 self.instruction.append([1, 1])
             else:
                 pass

@@ -47,10 +47,14 @@ class clientListenThread (threading.Thread):
             data = data[payload_size:]
             msg_size = struct.unpack("I", packed_msg_size)[0]
             self.print_msg("size:", msg_size)
+            s_recv = time.time()
+            c_recv = 0
             while len(data) < msg_size:
                 # data += self.client_socket.recv(1048576)
                 # print(len(data))
-                data += self.client_socket.recv(131072)
+                data += self.client_socket.recv(1024 * 1024)
+                c_recv += 1
+            print('recv time:', time.time() - s_recv, "recv count:", c_recv)
             frame_data = data[:msg_size]
             data = data[msg_size:]
 
@@ -111,7 +115,7 @@ class host():
         self.show_frame = {'origin': None,
                            'skeleton': None,
                            'tracking': None}
-        self.instruction = [None]
+        self.instruction = []
         print("HOST id ", id(self.instruction))
         self.frame_queue = deque(maxlen=10)
         self.listen_thread = clientListenThread(name + "_listen", ip_listen, port_listen, self.instruction, self.frame_queue)
@@ -139,6 +143,7 @@ def creat_host_TCP_socket(ip, port):
     print("Create socket:")
     socket_tcp = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0, fileno=None)
     socket_tcp.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    socket_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1024 * 1024)
     host_addr = (HOST_IP, HOST_PORT)
     socket_tcp.bind(host_addr)
     return socket_tcp
@@ -148,9 +153,10 @@ if __name__ == '__main__':
     print(1)
     # cart_server = host("Host", "127.0.0.1", 8899, "127.0.0.1", 8889)
     cart_server = host("Host", "192.168.0.4", 8899, "192.168.0.4", 8889)
+    # cart_server = host("Host", "192.168.137.147", 8899, "192.168.137.147", 8889)
     # cart_server = host("Host", "127.0.0.1", 8899, "127.0.0.1", 8889)
     time.sleep(2)
-    cart_server.instruction[0] = (b"TTTTest inst")
+    cart_server.instruction.append(b"TTTTest inst")
     print(id(cart_server.frame_queue))
     print(id(cart_server.listen_thread.frame_queue))
     print(id(cart_server.decision_thread.frame_queue))
@@ -158,17 +164,26 @@ if __name__ == '__main__':
     input_source = "video-1.mp4"
     cap = cv2.VideoCapture(input_source)
     hasFrame, frame = cap.read()
-#cv2.namedWindow("Origin", cv2.WINDOW_NORMAL)
-#cv2.resizeWindow("Origin", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
-#cv2.namedWindow("Skeleton", cv2.WINDOW_NORMAL)
-#cv2.resizeWindow("Skeleton", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
-#cv2.namedWindow("Tracking", cv2.WINDOW_NORMAL)
-#cv2.resizeWindow("Tracking", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
+
+    '''
+    cv2.namedWindow("Origin", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Origin", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
+    cv2.namedWindow("Skeleton", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Skeleton", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
+    cv2.namedWindow("Tracking", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Tracking", (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
     while cart_server.show_frame['origin'] is None:
         time.sleep(0.1)
     print('ID:', id(cart_server.show_frame))
     while cv2.waitKey(30) < 0:
+        if cart_server.show_frame['origin'] is not None:
 #cv2.imshow("Origin", cart_server.show_frame['origin'])
-#        cv2.imshow('Skeleton', cart_server.show_frame['skeleton'])
-#        cv2.imshow("Tracking", cart_server.show_frame['tracking'])
+            pass
+        if cart_server.show_frame['skeleton'] is not None:
+#cv2.imshow('Skeleton', cart_server.show_frame['skeleton'])
+            pass
+        if cart_server.show_frame['tracking'] is not None:
+#cv2.imshow("Tracking", cart_server.show_frame['tracking'])
+            pass
         pass
+    '''
