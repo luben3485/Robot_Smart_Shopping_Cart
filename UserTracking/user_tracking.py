@@ -256,7 +256,7 @@ class decisionThread (threading.Thread):
             self.print_msg('stop2:', stop2 - stop1)
             if self.tracking_thread.tracking_finish:
                 self.tracking_thread.join()
-                self.print_msg('tracking finish')
+                print('tracking finish')
                 self.tracking_writer.write(self.tracking_thread.frame)
                 self.show_frame['tracking'] = self.tracking_thread.frame  ####
                 tracking_tmp = self.tracking_thread.frame
@@ -267,8 +267,7 @@ class decisionThread (threading.Thread):
                     self.tracking_thread = trackingThread('Tracking Thread 1', pre_skeleton[-1][0], pre_skeleton[-1][1], self.moving_path, rebuild=True)
                     pre_skeleton.clear()
                 else:
-                    self.tracking_thread = trackingThread('Tracking Thread 1', frame, (0, 0, 0, 0), self.moving_path, rebuild=True)
-                    self.print_msg("None tracking")
+                    print("None tracking")
                 self.tracking_thread.start()
             else:
                 if tracking_tmp is None:
@@ -286,13 +285,13 @@ class decisionThread (threading.Thread):
         if len(self.moving_path) > 3:
             box_area = 0
             value = 0
-            for i in range(len(self.moving_path) - 1):
+            for i in range(len(self.moving_path)) - 1:
                 box_area += self.moving_path[i+1][2] * (2 - 0.1 * i)
                 value += (2 - 0.1 * i)
             box_area /= value
-            if self.moving_path[0][2] > box_area * 1.1:
+            if self.moving_path[0][3] > box_area * 1.1:
                 self.instruction.append([2, 1])
-            elif self.moving_path[0][2] < box_area * 0.9:
+            elif self.moving_path[0][3] < box_area * 0.9:
                 self.instruction.append([1, 1])
             else:
                 pass
@@ -320,7 +319,7 @@ class decisionThread (threading.Thread):
     def get_frame(self):
         count = 0
         while not self.frame_queue:
-            if count > 4000:
+            if count > 2000:
                 self.print_msg("Wait over 10 sec. Will Close Thread!!!")
                 return False
             if count % 200 == 0:

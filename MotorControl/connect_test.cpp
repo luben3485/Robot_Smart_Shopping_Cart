@@ -21,13 +21,13 @@ using namespace std;
 #define MOTOR1_PIN1 1 //pin12
 #define MOTOR1_PIN2 3 //pin15 gpio control
 #define MOTOR2_PIN1 23 //pin33
-#define MOTOR2_PIN2 //gpio control
+#define MOTOR2_PIN2 2 //pin13 gpio control
 
 int reso , sample_time;
 double rad ;
 
 //encoder
-int encoder_pre , encoder_count , encoder_check;
+int encoder_pre , encoder_check , encoder_end , diff;
 struct timeval start, finish;
 
 //speed
@@ -35,12 +35,13 @@ double vcmd1 , vcmd2;
 double duration;
 
 //PI control
-double KP , KI , G , in , ERR;
+double KP_1 , KI_1 , KP_2 , KI_2 , G_1 , G_2 , in_1 , in_2;
 
 //functions
 void encoder(int);
 double car_speed(int);
-int pi_control(double , double); //change speed
+int pi_control(int , double , double); //change speed
+
 void motor_stop();
 void motor_acc(int);
 void motor_turn_left(int);
@@ -61,9 +62,10 @@ void init(){
     duration = 0;
 
     //PI control
-    KP = 500;
-    KI = 2000;
-    G = 0; in = 0; ERR = 0;
+    KP_1 = 500;  KP_2 = 500;
+    KI_1 = 2000; KI_2 = 1000;
+    G_1 = 0; G_2 = 0; 
+	in_1 = 0; in_2 = 0;
 }
 
 
@@ -155,10 +157,12 @@ int main()
     pinMode(ENCODER_PIN1 , INPUT);
     pinMode(ENCODER_PIN2 , INPUT);
     pinMode(MOTOR1_PIN1 , PWM_OUTPUT);
-    pinMode(MOTOR2_PIN2 , PWM_OUTPUT);
-    pinMode(MOTOR1_PIN2 , OUTPUT);
+    pinMode(MOTOR2_PIN1 , PWM_OUTPUT);
+	pinMode(MOTOR1_PIN2 , OUTPUT);
+    pinMode(MOTOR2_PIN2 , OUTPUT);
 
-    digitalWrtie(MOTOR1_PIN2 , HIGH);
+	digitalWrite(MOTOR1_PIN2 , LOW);
+    digitalWrtie(MOTOR2_PIN2 , HIGH);
 
     while(true)
     {
@@ -175,9 +179,9 @@ int main()
         pwmWrite(MOTOR1_PIN1 , PWM1);
         pwmWrite(MOTOR2_PIN2 , PWM2);
 
-        speed1 = car_speed();
+        speed1 = car_speed(1);
         pi_control(vcmd1 , speed1);
-        speed2 = car_speed();
+        speed2 = car_speed(2);
         pi_control(vcmd2 , speed2);
         //usleep(100000); // delay
     }
@@ -260,12 +264,23 @@ void motor_turn_right(int level){
     }
 }
 
-int pi_control(double vcmd, double speed){
+int pi_control(int num , double vcmd, double speed){
     int PWM = 0;
+	double ERR , G , in;
 
     ERR = vcmd - speed;
-    G = ERR * KP;
-    in = in + ERR * duration * KI;
+
+	if(num == 1){
+		G_1 = ERR * KP_1;
+		in_1 = in_1 + ERR * duration * KI_1;
+
+		G = G_1;
+		in = in_1;
+	}
+	else{
+		G_2 = ERR * KP_2;
+		in_2 = in_2 + ERR * duration
+	}
 
     if(G > 1023)
         G = 1023;
@@ -278,10 +293,10 @@ int pi_control(double vcmd, double speed){
         in = -1023;
 
     PWM = G + in;
-    if(abs(PWM) > =960)
-        PWM = 960;
-    else if(abs(PWM) < 100)
-        PWM = 100;
+    if(abs(PWM) > = 1000)
+        PWM = 1000;
+    else 
+		PWM = abs(PWM);
     
     return PWM;
 }

@@ -94,7 +94,7 @@ class avoidThread(threading.Thread):
                 self.decision = [0, 1]
             start = time.time()
             self.client_socket.send(pickle.dumps(self.decision))
-            self.print_msg("Server send instruction", self.decision, "spend time:", time.time() - start)
+            # self.print_msg("Server send instruction", self.decision, "spend time:", time.time() - start)
             time.sleep(0.1)
         self.print_msg("退出線程：" + self.name)
 

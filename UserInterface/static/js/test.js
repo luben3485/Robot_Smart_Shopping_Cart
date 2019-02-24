@@ -9,7 +9,6 @@ $(document).ready(function(){
     */
     var x;
     var y;
-    var path=-1;
 /*
     if (!('webkitSpeechRecognition' in window)) {
         alert('doesn\'t exist');
@@ -47,14 +46,12 @@ $(document).ready(function(){
                     console.log('Ajax Audio 發生錯誤');
                 },
                 success: function(response) {
-					console.log('success getting from audio');
-                    path = response.path+1;
-					console.log("path:"+path);
-        			if(path == 1) show_path1()
-        			else if(path == 2) show_path2()
-        			else if(path == 3) show_path3()
-        			else if(path == 4) show_path4()
-					else if(path == 0) console.log("audio eturn:-1")
+                    i = response.path+1;
+        			if(i == 1) show_path1()
+        			else if(i == 2) show_path2()
+        			else if(i == 3) show_path3()
+        			else if(i == 4) show_path4()
+					else if(i == -1) console.log("return:-1")
                 }
           
         });
@@ -74,21 +71,6 @@ $(document).ready(function(){
                     x = response.x;
                     $(".div2").css("top",y+"vh");
                     $(".div2").css("left",x+"vw");
-                    
-                    var canvas = document.getElementById('canvas');
-                    if (canvas.getContext){
-                        var ctx = canvas.getContext('2d');
-                        width =  document.documentElement.clientWidth*0.85
-                        height = document.documentElement.clientHeight
-                        ctx.canvas.width  = width;
-                        ctx.canvas.height = height;
-                    }
-					console.log("1122")
-                    if(path == 1) show_path1()
-        			else if(path == 2) show_path2()
-        			else if(path == 3) show_path3()
-        			else if(path == 4) show_path4()
-					else if(path == 0) console.log("no path")
                     //alert('inner y ');
                     //alert(y)
 
@@ -289,7 +271,7 @@ $(document).ready(function(){
         ajax_func()
         
         
-    }, 8000);
+    }, 2000);
     
     $('#search').click(function(){
    		ajax_audio()     
@@ -300,7 +282,7 @@ $(document).ready(function(){
     
 	 $('#canel').click(function(){
          var canvas = document.getElementById('canvas');
-            path = 0;
+
             if (canvas.getContext){
                 var ctx = canvas.getContext('2d');
                 width =  document.documentElement.clientWidth*0.85

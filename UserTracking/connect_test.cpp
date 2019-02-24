@@ -45,22 +45,26 @@ int createTCPsocket(int port) // create socket
 void check(string instruction) // check instruction funtion
 {
     // ---------- instruction split ----------
+    
     char str[1024];
     strcpy(str, instruction.c_str());
+    /*
     char * pch;
     std::vector<char *> v;
     pch = strtok (str," ");
     while (pch != NULL)
     {
-        printf ("%s\n",pch);
+        //printf ("%s\n",pch);
         v.push_back(pch);
         pch = strtok (NULL, " ,.-");
     }
     char* action = v[0];
     char* level = v[1];
-    printf("action:%s level:%s\n", action, level);
+    */
+    //printf("action:%s level:%s\n", action, level);
     // ---------- instruction split ----------
-    switch(atoi(action)){ // convert action to 'int' and do decision
+    cout << (atoi(str) - 48) << endl;
+    switch(atoi(str) - 48){ // convert action to 'int' and do decision
         case 0: // stop
             cout << "stop\n" << endl;
             break;
@@ -71,6 +75,12 @@ void check(string instruction) // check instruction funtion
         case 3: // turn right
             cout << "turn\n" << endl;
             break;
+        case 4:
+            //cout << "None Inst\n" << endl;
+            break;
+        case 8:
+            cout << "first Test\n" << endl;
+            break;
         default:
             cout << "Unexcept value\n" << endl;
     }
@@ -79,20 +89,25 @@ void check(string instruction) // check instruction funtion
 
 int main()
 {
-    char inputBuffer[256] = {};
+    char inputBuffer[256];
+    
     int sockfd_client = createTCPsocket(7878); // create socket at port:7878
     while(true)
     {
+        bzero(inputBuffer, 256);
+        cout << "start receive" << endl;
         int inst_length = read(sockfd_client, inputBuffer, sizeof(inputBuffer)); // receive instruction
+        cout << "finish receive" << endl;
         if(inst_length > 0) // receive something
         {
             printf("Get:%s\n", inputBuffer);
             check(inputBuffer);
             memset(inputBuffer, 0, sizeof(inputBuffer)); // clear inputBuffer
+            cout << "finish get" << endl;
         }
         else // receive nothing
             printf("hey hey\n");
-        usleep(100000); // delay
+        usleep(500000); // delay
     }
     return 0;
 }

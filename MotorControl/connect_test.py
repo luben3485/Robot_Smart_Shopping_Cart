@@ -29,10 +29,10 @@ def creat_TCP_socket(ip, port):  # create socket
 
 
 send_socket = creat_TCP_socket("127.0.0.1", 7878)  # create socket: connect to 127.0.0.1 at port:7878
-send_socket.send(b"0 1")  # send test data
+send_socket.send(b"1")  # send test data
 time.sleep(2)
-send_socket.send(b"1 2")  # send test data
-time.sleep(3)
-send_socket.send(b"3 5")  # send test data
-time.sleep(5)
-send_socket.send(b"4 4")  # send test data
+#send_socket.send(b"1 2")  # send test data
+#time.sleep(3)
+#send_socket.send(b"3 5")  # send test data
+#time.sleep(5)
+#send_socket.send(b"4 4")  # send test data

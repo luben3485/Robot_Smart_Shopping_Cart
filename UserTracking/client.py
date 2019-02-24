@@ -1,3 +1,4 @@
+# coding=utf-8
 import cv2
 import sys
 import time
@@ -29,14 +30,15 @@ class serverListenThread (threading.Thread):
             # print("Receiving data...")
             data = self.listen_socket.recv(1024)
             # print("data size: %d", len(data))
-            self.print_msg("listen get data", data)
+            # self.print_msg("listen get data", data)
             self.recv_data += data
-            if not data or len(data) < 1024:
-                if self.from_sonic is True:
-                    self.recv_data = pickle.loads(self.recv_data)
-                self.print_msg("Update instruction from server %s:%d" % (self.ip, self.port))
+            if len(self.recv_data) < 1024:
+                # self.print_msg("Update instruction from server %s:%d" % (self.ip, self.port))
+                #print(data)
                 self.instruction.appendleft(self.recv_data)
-            time.sleep(0.01)
+                #print("--receive")
+                self.recv_data = b''
+            time.sleep(0.1)
         self.print_msg("退出線程：" + self.name)
 
     def get_instruction(self, from_sonic=False):
@@ -85,9 +87,10 @@ class serverSendThread (threading.Thread):
         t_data = pickle.dumps(img)  # new
         self.print_msg(len(t_data))
         start = time.time()
-        self.send_socket.sendall(struct.pack("L", len(t_data)) + t_data)  # new
+        self.send_socket.sendall(struct.pack("I", len(t_data)) + t_data)  # new
+        print("size:", len(t_data))
         self.print_msg(time.time() - start)
-        self.print_msg("Successfully send frame")
+        self.print_msg("Successfully send frame" + str(time.time() - start))
 
     def print_msg(self, *args):
         print(self.id, " ".join(map(str, args)))
@@ -125,6 +128,8 @@ def creat_TCP_socket(ip, port):
     print("Create socket:")
     socket_tcp = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0, fileno=None)
     socket_tcp.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    socket_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1024 * 1024)
+    socket_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_addr = (SERVER_IP, SERVER_PORT)
     while True:
         try:
@@ -138,7 +143,7 @@ def creat_TCP_socket(ip, port):
             break
         except Exception:
             print("Can't connect to server %s:%s, try it after %d second." % (SERVER_IP, SERVER_PORT, 1))
-            time.sleep(1)
+            time.sleep(0.5)
             continue
     return socket_tcp
 
@@ -152,6 +157,7 @@ def creat_motor_socket(ip, port):  # create socket
     socket_tcp = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0, fileno=None)
     print("motor tcp socket")
     socket_tcp.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    socket_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     print("set socket")
     server_addr = (SERVER_IP, SERVER_PORT)
     while True:
@@ -175,10 +181,14 @@ def creat_motor_socket(ip, port):  # create socket
 if __name__ == '__main__':
     print(1)
     # cart_client = client("Cart 1", "127.0.0.1", 8889, "127.0.0.1", 8899)
-    cart_client = client("Cart 1", "140.116.158.49", 8887, "140.116.158.49", 8787)
+    # cart_client = client("Cart 1", "140.116.102.106", 8889, "140.116.102.106", 8899)
+    cart_client = client("Cart 1", "192.168.0.4", 8889, "192.168.0.4", 8899)
+    # cart_client = client("Cart 1", "192.168.137.147", 8889, "192.168.137.147", 8899)
     motor_socket = creat_motor_socket("127.0.0.1", 7878)  # create socket: connect to 127.0.0.1 at port:7878
-    input_source = "video-7.mp4"
-    cap = cv2.VideoCapture(input_source)
+    input_source = "video.avi"
+    # cap = cv2.VideoCapture(input_source)
+    cap = cv2.VideoCapture(0)
+    frame_count = 0
     hasFrame, frame = cap.read()
     if not hasFrame:
         print("Video can't open!!!")
@@ -186,26 +196,42 @@ if __name__ == '__main__':
         hasFrame, frame = cap.read()
         if not hasFrame:
             break
+        frame_count += 1
         cart_client.send_frame(frame)
+        print("get instruction")
         final_instruction = None
         tracking_instruction = cart_client.listen_thread.get_instruction()
-        sonic_instruction = cart_client.sonic_thread.get_instruction()
+        # sonic_instruction = cart_client.sonic_thread.get_instruction()
+        print("check instruction")
         if tracking_instruction:
+            print("tracking instruction")
             cart_client.listen_thread.clean_instruction()
             final_instruction = tracking_instruction
-        if sonic_instruction:
-            cart_client.sonic_thread.clean_instruction()
-            final_instruction = sonic_instruction
+        # if sonic_instruction:
+            # print("sonic instruction")
+            # cart_client.sonic_thread.clean_instruction()
+            # final_instruction = sonic_instruction
         if final_instruction is None:
-            motor_socket.send(b"")
+            print()
+            print("None instruction")
+            print()
+            # motor_socket.send(b"4 0")
         else:
-            msg = str(final_instruction[0]) + " " + str(final_instruction[1])
-            motor_socket.send(msg)
-        time.sleep(0.0333)
+            msg = str(final_instruction[0])
+            print()
+            print("final instruction", msg)
+            print()
+            motor_socket.send(msg.encode())
+        if frame_count > 150:
+            break
+        else:
+           print(frame_count)
+        print("finish 1 cycle")
+        time.sleep(1)
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     print(length)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    print("Frames per second using video.get(cv2.CAP_PROP_FPS) : {0}".format(fps))
+    # fps = cap.get(cv2.CAP_PROP_FPS)
+    # print("Frames per second using video.get(cv2.CAP_PROP_FPS) : {0}".format(fps))
 
     #origin_img = "test.jpg"
     #img = cv2.imread(origin_img)
