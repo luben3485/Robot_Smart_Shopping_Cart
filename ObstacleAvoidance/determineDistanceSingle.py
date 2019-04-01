@@ -4,9 +4,9 @@ import time
 #echo_pin = 24
 #trigger_pin = 14
 #echo_pin = 15
-trigger_pin = [23,25,16,17,10,2]
-echo_pin = [24,8,20,27,9,3]
-numOfSensor = 6
+trigger_pin = [25]
+echo_pin = [8]
+numOfSensor = 1
 distance = [0]*numOfSensor
 count = 1
 GPIO.setwarnings(False)
@@ -36,7 +36,7 @@ def get_distance():
 		pulse_len = finish - start
 		distance[i] = pulse_len * 340 *100 /2
 		time.sleep(0.1)
-'''
+
 while True:
 	get_distance()
 	print("count:%d" % count)
@@ -44,4 +44,4 @@ while True:
 	for i in range(len(distance)):
 		print("cm=%f" % distance[i])
 	time.sleep(1)
-'''
+
