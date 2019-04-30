@@ -3,9 +3,9 @@ def checkObstacles(distance):
 	
 	for i in range(2):
 		if distance[i] <= bubbleBoundary[i]:
-			print("Obstacle detected!!")
+			#print("Obstacle detected!!")
 			return True
-	print("It's safe!!")
+	#print("It's safe!!")
 	return False
 
 def calculateAngle(distance):

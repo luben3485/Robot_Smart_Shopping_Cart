@@ -4,14 +4,16 @@ import bubbleRebound
 import kalman
 while True:
 	determineDistance.get_distance()
-	for i in range(len(determineDistance.distance)):
-		print("cm=%f" % determineDistance.distance[i])
-	
+
 	distanceKalman = kalman.kalmanFilter(determineDistance.distance)
-	print(distanceKalman[0])
-	print(distanceKalman[1])
+	
+	for i in range(len(determineDistance.distance)):
+		print("before sensor %d %f" % (i,determineDistance.distance[i]))	
+	
+	for i in range(len(distanceKalman)):
+		print("after sensor %d %f" % (i,distanceKalman[i]))	
 	if bubbleRebound.checkObstacles(distanceKalman):
-		turnAngle = bubbleRebound.calculateAngle(distaceKalman)
+		turnAngle = bubbleRebound.calculateAngle(distanceKalman)
 		print("turnAngle:%f" % turnAngle)
 	else:
 		print("turnAngle:(safe)")

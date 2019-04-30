@@ -24,6 +24,6 @@ def kalmanFilter(distance):
 	f1.update(distance[0])
 	f2.update(distance[1])
 	
-	newDistance = [f1.x, f2.x]
+	newDistance = [f1.x[0], f2.x[0]]
 	
 	return newDistance
