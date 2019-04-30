@@ -52,7 +52,6 @@ class DecisionMaker(threading.Thread):
                 self.motor_lock.acquire()
                 self.motor_instruction.appendleft(data)
                 self.motor_lock.release()
-
         pass
     
     def creat_TCP_socket(self, ip, port):
@@ -82,6 +81,7 @@ class FollowSocketThread(threading.Thread):
     def run(self):
         self.server_socket.listen(1)
         self.client_socket, (self.client_ip, self.client_port) = self.server_socket.accept() 
+        self.client_socket.send(bytes('You have connected to Decision Maker Server.'.encode('utf-8')))
         self.print_msg("Follow Socket Thread Start!")
         while True:
             data = self.client_socket.recv(1024).decode('utf-8')
