@@ -39,7 +39,7 @@ def RSSI_ave_six():
 				count6 += 1
 				R6 += device.rssi
 			print(count1,count2,count3,count4,count5,count6)
-		if iteration >=10:
+		if iteration >=20:
 			if count1 == 0:
 				R1 = -80
 				count1 = 1
