@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import cv2
 import time
+import math
 import socket
 import threading
 from collections import deque
@@ -61,13 +62,42 @@ class Follow(threading.Thread):
             #      include: momentum calculate & compare with previous position
             #               judge the rationality of the position
             #               according to (x,y), target size, center position make instruction
-            pass
+            if target is None:
+                continue
+            else:
+                instruction = self.make_instruction(target)
+                # send instruction
+                data = instruction[0] + ' ' + instruction[1]
+                self.decison_socket.send(bytes(data.encode('utf-8')))
+                self.print_msg("Send follow instruction to server!", data)
         pass
+
+    def make_instruction(self, target):
+        direction = "straight"
+        value = 0
+        weight = 1
+        if target.area > self.x * self.y * 0.6:
+            diection = "stop"
+            return (direction, int(value))
+        standard_area = self.x * self.y * 0.3
+        current_position = target.center
+        if current_position[0] < self.x * 0.4:
+            value = math.log2((1 / (1 - target.area / (self.x * self.y))) * (self.x * 0.5 - current_position[0])) * weight
+            direction = "left"
+        elif current_position[0] > self.x * 0.6:
+            value = math.log2((1 / (1 - target.area / (self.x * self.y))) * (current_position[0] - self.x * 0.5)) * weight
+            direction = "right"
+        else:
+            # sigmoid function to scale the difference of area
+            value = (1 / (1 + math.exp(-(1 - (target.area / standard_area)) * 4)) + 1) * 5
+        return (direction, int(value))
+
 
     def feature_calculate(self, target):
         target_center = [(target.box_right + target.box_left)/2,
                          (target.box_bottom + target.box_top)/2]
         # temp condition
+        # displacement between previous frame and current frame must smaller than 20% of weight and height
         if (target_center[0] <= self.prev_positon[-1].center[0] + self.x * 0.2) and (target_center[0] >= self.prev_positon[-1].center[0] - self.x * 0.2):
             return True
         else:
@@ -104,7 +134,7 @@ class Follow(threading.Thread):
             return 1
         else:
             return 0
-        
+
     def target_search(self, frame, objects):
         target_objects = []
         for obj in objects:
