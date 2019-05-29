@@ -5,6 +5,7 @@ import time
 import math
 import socket
 import threading
+import numpy as np
 from collections import deque
 import SingleStickSSDwithUSBCamera_OpenVINO_NCS2_robot as SSD
 
@@ -44,7 +45,7 @@ class Follow(threading.Thread):
      #    self.decison_socket = self.creat_TCP_socket(self.decision_socket_ip, self.decision_socket_port)
         # input_source = "test.avi"
         #self.camera_init(camera_id=input_source)
-        self.camera_init(camera_id = self.camera_id)
+        self.camera_init(camera_width=1280, camera_height=720, camera_fps=30, camera_id = self.camera_id)
         frame = self.get_frame()
         if frame is None:
             self.print_msg("Camera or Video can't open!!!")
@@ -71,11 +72,22 @@ class Follow(threading.Thread):
                 data = instruction[0] + ' ' + str(instruction[1])
            #    self.decison_socket.send(bytes(data.encode('utf-8')))
                 self.print_msg("Send follow instruction to server!", data)
-                cv2.rectangle(frame, (target.box_left, target.box_top), (target.box_right, target.box_bottom), (0,0,255))
-                cv2.rectangle(frame, (self.prev_position[-1].box_left, self.prev_position[-1].box_top),
-                        (self.prev_position[-1].box_right, self.prev_position[-1].box_bottom), (0,255,0))
+                cv2.rectangle(frame, (target.box_left, target.box_top), (target.box_right, target.box_bottom), (0,0,255), 2)
+                cv2.rectangle(frame, (self.prev_position[-2].box_left, self.prev_position[-2].box_top),
+                                     (self.prev_position[-2].box_right, self.prev_position[-2].box_bottom), (0,255,0), 2)
                 cv2.putText(frame, data, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 1, cv2.LINE_AA)
-            cv2.nameWindow("Follow", cv2.WINDOW_NORMAL)
+                cv2.circle(frame, (int(target.center[0]), int(target.center[1])), 7, (0,0,255), -1)
+            cv2.line(frame, (int(self.x/2), 0), (int(self.x/2), self.y), (0,232,240), 3)
+            cv2.line(frame, (int(self.x * 0.4), 0), (int(self.x * 0.4), self.y), (27,211,218), 2)
+            cv2.line(frame, (int(self.x * 0.6), 0), (int(self.x * 0.6), self.y), (27,211,218), 2)
+            for i in range(len(self.prev_position)-1, -1, -1):
+                if self.prev_position[i-1] is None or self.prev_position[i] is None:
+                    continue
+                thickness = int(np.sqrt(10/float(i+1)) * 2.5)
+                center1 = (int(self.prev_position[i].center[0]), int(self.prev_position[i].center[1]))
+                center2 = (int(self.prev_position[i-1].center[0]), int(self.prev_position[i-1].center[1]))
+                cv2.line(frame, center2, center1, (0,0,255), thickness)
+            cv2.namedWindow("Follow", cv2.WINDOW_NORMAL)
             cv2.imshow("Follow", frame)
             cv2.waitKey(30)
         pass
