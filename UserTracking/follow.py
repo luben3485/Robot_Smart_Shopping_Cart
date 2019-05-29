@@ -28,22 +28,23 @@ class TargetFeature(SSD.DetectionObject):
         self.keypoints = kps
 
 class Follow(threading.Thread):
-    def __init___(self, name, ip, port):
+    def __init__(self, name, ip, port, camera_id = 0):
         threading.Thread.__init__(self)
         self.id = '[' + name + ']'
+        self.camera_id = camera_id
         self.decision_socket_ip = ip
         self.decision_socket_port = port
         self.decison_socket = None
-        self.prev_positon = deque(maxlen = 10)
+        self.prev_position = deque(maxlen = 10)
         self.x = 0
         self.y = 0
         self.frame_center = [0, 0] # [x, y] frame center point
 
     def run(self):
-        self.decison_socket = self.creat_TCP_socket(self.decision_socket_ip, self.decision_socket_port)
+     #    self.decison_socket = self.creat_TCP_socket(self.decision_socket_ip, self.decision_socket_port)
         # input_source = "test.avi"
         #self.camera_init(camera_id=input_source)
-        self.camera_init()
+        self.camera_init(camera_id = self.camera_id)
         frame = self.get_frame()
         if frame is None:
             self.print_msg("Camera or Video can't open!!!")
@@ -67,9 +68,16 @@ class Follow(threading.Thread):
             else:
                 instruction = self.make_instruction(target)
                 # send instruction
-                data = instruction[0] + ' ' + instruction[1]
-                self.decison_socket.send(bytes(data.encode('utf-8')))
+                data = instruction[0] + ' ' + str(instruction[1])
+           #    self.decison_socket.send(bytes(data.encode('utf-8')))
                 self.print_msg("Send follow instruction to server!", data)
+                cv2.rectangle(frame, (target.box_left, target.box_top), (target.box_right, target.box_bottom), (0,0,255))
+                cv2.rectangle(frame, (self.prev_position[-1].box_left, self.prev_position[-1].box_top),
+                        (self.prev_position[-1].box_right, self.prev_position[-1].box_bottom), (0,255,0))
+                cv2.putText(frame, data, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 1, cv2.LINE_AA)
+            cv2.nameWindow("Follow", cv2.WINDOW_NORMAL)
+            cv2.imshow("Follow", frame)
+            cv2.waitKey(30)
         pass
 
     def make_instruction(self, target):
@@ -98,18 +106,19 @@ class Follow(threading.Thread):
                          (target.box_bottom + target.box_top)/2]
         # temp condition
         # displacement between previous frame and current frame must smaller than 20% of weight and height
-        if (target_center[0] <= self.prev_positon[-1].center[0] + self.x * 0.2) and (target_center[0] >= self.prev_positon[-1].center[0] - self.x * 0.2):
+        if (target_center[0] <= self.prev_position[-1].center[0] + self.x * 0.2) and (target_center[0] >= self.prev_position[-1].center[0] - self.x * 0.2):
             return True
         else:
             return False
 
     def keypoint_detect(self, gray):
-        detector = cv2.FastFeatureDetector_create("FAST")
+        detector = cv2.FastFeatureDetector_create() # FAST
         kps = detector.detect(gray)
         return kps
 
     def SURF(self, grayImg, kpsData):
         extractor = cv2.DescriptorExtractor_create("SURF")
+        # extractor = cv2.xfeatures2d.SURF_create()
         (kps, descs) = extractor.compute(grayImg, kpsData)
         if len(kps) > 0:
             return (kps, descs)
@@ -141,18 +150,21 @@ class Follow(threading.Thread):
             if obj.class_name is 'person':
                 target_objects.append(obj)
         # when number of previous position is less 5
-        if len(self.prev_positon) < 5:
+        if len(self.prev_position) < 5:
             for target in target_objects:
                 if target.confidence < 0.7:
                     continue
                 target_center = [(target.box_right + target.box_left)/2,
                                  (target.box_bottom + target.box_top)/2]
                 # when target center between x-center of frame +- 20%
-                if (target_center[0] <= self.frame_center + self.x * 0.2) and (target_center[0] >= self.frame_center - self.x * 0.2):
+                if (target_center[0] <= self.frame_center[0] + self.x * 0.2) and (target_center[0] >= self.frame_center[0] - self.x * 0.2):
                     # crop target reigon in frame
                     target_img = frame[target.box_top:target.box_bottom, target.box_left:target.box_right]
+                    print(target_img.shape)
+                    if (target_img.shape[0] == 0 or target_img.shape[1] == 0):
+                        continue
                     kps = self.keypoint_detect(cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY))
-                    self.prev_positon.append(TargetFeature(target, target_img, kps))
+                    self.prev_position.append(TargetFeature(target, target_img, kps))
                     return None
             return None
         else:
@@ -165,18 +177,25 @@ class Follow(threading.Thread):
                     continue
                 # compare with previous image
                 target_img = frame[target.box_top:target.box_bottom, target.box_left:target.box_right]
+                print(target_img.shape)
+                if (target_img.shape[0] == 0 or target_img.shape[1] == 0):
+                    continue
                 gray = cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY)
                 kps = self.keypoint_detect(gray)
                 # temp condition
-                result1 = self.feature_matching(self.prev_positon[-1].gray_img, gray,
-                                      self.SURF(self.prev_positon[-1].gray_img, self.prev_positon[-1].keypoints), self.SURF(gray, kps))
-                result2 = self.feature_matching(self.prev_positon[-2].gray_img, gray,
-                                      self.SURF(self.prev_positon[-2].gray_img, self.prev_positon[-2].keypoints), self.SURF(gray, kps))
-                result3 = self.feature_matching(self.prev_positon[-3].gray_img, gray,
-                                      self.SURF(self.prev_positon[-3].gray_img, self.prev_positon[-3].keypoints), self.SURF(gray, kps))
+                '''
+                result1 = self.feature_matching(self.prev_position[-1].gray_img, gray,
+                                      self.SURF(self.prev_position[-1].gray_img, self.prev_position[-1].keypoints), self.SURF(gray, kps))
+                result2 = self.feature_matching(self.prev_position[-2].gray_img, gray,
+                                      self.SURF(self.prev_position[-2].gray_img, self.prev_position[-2].keypoints), self.SURF(gray, kps))
+                result3 = self.feature_matching(self.prev_position[-3].gray_img, gray,
+                                      self.SURF(self.prev_position[-3].gray_img, self.prev_position[-3].keypoints), self.SURF(gray, kps))
                 if result1 + result2 + result3 >= 2:
-                    self.prev_positon.append(TargetFeature(target, target_img, kps))
+                    self.prev_position.append(TargetFeature(target, target_img, kps))
                     return TargetFeature(target, target_img, kps)
+                '''
+                self.prev_position.append(TargetFeature(target, target_img, kps))
+                return TargetFeature(target, target_img, kps)
             return None
 
     def person_detect(self, frame):
@@ -229,3 +248,7 @@ class Follow(threading.Thread):
 
     def print_msg(self, *args):
         print(self.id, " ".join(map(str, args)))
+if __name__ == "__main__":
+    follow_test = Follow('Follow_test', '127.0.0.1', 8888, 'video.avi')
+    print("Start Follow")
+    follow_test.start()
