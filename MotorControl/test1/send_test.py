@@ -34,6 +34,7 @@ if(ser.isOpen()):
                 sys.stdout.flush()
             else:
                 sys.stdout.write('\n')
+                sys.stdout.write("send:\n");
                 sys.stdout.write(line + '\n')
                 sys.stdout.flush()
                 
@@ -46,6 +47,7 @@ if(ser.isOpen()):
             cin = ser.read(1)
             if cin != b'\n':
                 cin = cin.decode(encoding='utf-8' , errors='ignore')
+                #cin = cin.decode()
                 s += cin
             else:
                 print("received:" + s)
