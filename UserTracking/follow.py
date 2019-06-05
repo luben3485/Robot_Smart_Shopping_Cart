@@ -49,7 +49,7 @@ class Follow(threading.Thread):
         # input_source = "test.avi"
         #self.camera_init(camera_id=input_source)
         
-        self.camera_init(camera_width=1280, camera_height=720, camera_fps=30, camera_id = self.camera_id)
+        self.camera_init(camera_width=960, camera_height=540, camera_fps=30, camera_id = self.camera_id)
         # (320, 200)
         self.timer = time.time()
         frame = self.get_frame()
@@ -209,13 +209,13 @@ class Follow(threading.Thread):
             distance_list = sorted(result_list, key=lambda x: x[1])
             points_list = []
             for i in range(len(distance_list)):
-                if distance_list[0][1] / distance_list[i][1] > 0.9:
+                if distance_list[0][1] / distance_list[i][1] > 0.85:
                     points_list.append(distance_list[i])
             final_list = sorted(points_list, key=lambda x: x[2], reverse=True)
             if len(final_list) > 0:
                 index = final_list[0][0]
                 self.prev_position.append(TargetFeature(target_objects[index], final_list[0][4], final_list[0][5]))
-                return TargetFeature(target, target_img, kps)
+                return TargetFeature(target_objects[index], final_list[0][4], final_list[0][5])
             return None
 
     def person_detect(self, frame):
@@ -269,6 +269,6 @@ class Follow(threading.Thread):
     def print_msg(self, *args):
         print(self.id, " ".join(map(str, args)))
 if __name__ == "__main__":
-    follow_test = Follow('Follow_test', '127.0.0.1', 8888, 'video.avi')
+    follow_test = Follow('Follow_test', '127.0.0.1', 8888)
     print("Start Follow")
     follow_test.start()
