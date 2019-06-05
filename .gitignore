@@ -7,3 +7,4 @@ UserTracking/pose/coco/pose_iter_440000.caffemodel
 .vscode/ipch/aef652104ef86e96/mmap_address.bin
 .vscode/ipch/aef652104ef86e96/WAR4.ipch
 .vscode/settings.json
+*.pyc
