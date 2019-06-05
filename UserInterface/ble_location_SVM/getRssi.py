@@ -1,12 +1,12 @@
 import numpy as np
-import kalman_filter
+import kalman_filter_six
 
 feature = []
 y = []
 num = 17
 for i in range(30):
 	print("Fuck:"+str(i+1))
-	R1,R2,R3,R4,R5,R6 = kalman_filter.rssi_kalman_filter()
+	R1,R2,R3,R4,R5,R6 = kalman_filter_six.rssi_kalman_filter_six()
 	feature.append([R1,R2,R3,R4,R5,R6])
 	y.append([num])
 x = np.array(feature)
