@@ -3,7 +3,7 @@
 import sys
 import tty
 import time
-import deque
+from collections import deque
 import serial
 import termios
 from argparse import ArgumentParser

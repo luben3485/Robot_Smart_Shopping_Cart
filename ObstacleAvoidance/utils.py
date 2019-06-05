@@ -1,9 +1,10 @@
-import determineDistance
-import bubbleRebound
-import kalman
+from . import determineDistance
+from . import bubbleRebound
+from . import kalman
 ini = 0
 pre = [0]*6
 def obstacleAvoidance(init = False):  
+    pre=[0] * 6
     determineDistance.get_distance()
     distanceKalman = kalman.kalmanFilter(determineDistance.distance)
     if(init):

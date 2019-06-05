@@ -7,7 +7,7 @@ import socket
 import threading
 import numpy as np
 from collections import deque
-import SingleStickSSDwithUSBCamera_OpenVINO_NCS2_robot as SSD
+from . import SingleStickSSDwithUSBCamera_OpenVINO_NCS2_robot as SSD
 import sys
 import termios
 import tty
@@ -158,7 +158,10 @@ class Follow(threading.Thread):
         return (direction, int(value))
 
     def keypoint_detect(self, gray):
-        kps, des = self.orb.detectAndCompute(gray, None)
+        try:
+            kps, des = self.orb.detectAndCompute(gray, None)
+        except:
+            return [],[]
         return kps, des
 
     def keypoints_match(self, kp1, des1, kp2, des2):
