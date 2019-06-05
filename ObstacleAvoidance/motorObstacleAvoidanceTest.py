@@ -19,7 +19,8 @@ if(ser.isOpen()):
     while True:
         sleep(.001)
         if select.select([sys.stdin],[],[],0) == ([sys.stdin], [], []):
-            c = sys.stdin.read(1)
+            '''
+			c = sys.stdin.read(1)
             if c == '\x1b':
                 ser.write('0'.encode())
                 ser.write('\n'.encode())
@@ -28,7 +29,7 @@ if(ser.isOpen()):
                 if(~ser.isOpen()):
                     print("closed\n")
                 break
-			'''	
+	
             if c != '\n' :
                 line += c
                 sys.stdout.write(c)
