@@ -3,12 +3,11 @@ import bubbleRebound
 import kalman
 ini = 0
 pre = [0]*6
-def obstacleAvoidance():  
+def obstacleAvoidance(init = False):  
     determineDistance.get_distance()
     distanceKalman = kalman.kalmanFilter(determineDistance.distance)
-    if(ini ==0):
+    if(init):
         pre = determineDistance.distance
-        ini +=1
     else:
         for i in range(len(distanceKalman)):
             if abs(pre[i]-determineDistance.distance[i]) >=70:

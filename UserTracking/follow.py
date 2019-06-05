@@ -33,12 +33,10 @@ class TargetFeature(SSD.DetectionObject):
         self.keypoints = keypoint_list
 
 class Follow(threading.Thread):
-    def __init__(self, name, ip, port, testing=False, camera_id = 0):
+    def __init__(self, name, follow_instruction, camera_id = 0, testing=False):
         threading.Thread.__init__(self)
         self.id = '[' + name + ']'
         self.camera_id = camera_id
-        self.decision_socket_ip = ip
-        self.decision_socket_port = port
         self.decison_socket = None
         self.prev_position = deque(maxlen = 10)
         self.x = 0
@@ -47,6 +45,8 @@ class Follow(threading.Thread):
         self.timer = 0
         self.orb = cv2.ORB.create()
         self.bf = cv2.BFMatcher(normType=cv2.NORM_HAMMING)
+        self.action_dict = {'straight':0, 'stop':0, 'left':5, 'right':-5}
+        self.follow_instruction = follow_instruction
         self.testing = testing
 
     def run(self):
@@ -77,7 +77,7 @@ class Follow(threading.Thread):
         frame = self.get_frame()
         if frame is None:
             self.print_msg("Camera or Video can't open!!!")
-
+        
         while(True):
             # get camera image
             start_time = time.time()
@@ -105,6 +105,7 @@ class Follow(threading.Thread):
                 instruction = self.make_instruction(target)
                 # send instruction
                 data = instruction[0] + ' ' + str(instruction[1])
+                self.follow_instruction.appendleft([self.action_dict[instruction[0]], instruction[1]])
                 # self.decison_socket.send(bytes(data.encode('utf-8')))
 
                 # Testing connect with motor
@@ -191,14 +192,17 @@ class Follow(threading.Thread):
         standard_area = self.x * self.y * 0.3
         current_position = target.center
         if current_position[0] < self.x * 0.4:
-            value = math.log2((1 / (1 - target.area / (self.x * self.y))) * (self.x * 0.5 - current_position[0])) * weight
+            # value = math.log2((1 / (1 - target.area / (self.x * self.y))) * (self.x * 0.5 - current_position[0])) * weight
+            value = 5
             direction = "left"
         elif current_position[0] > self.x * 0.6:
-            value = math.log2((1 / (1 - target.area / (self.x * self.y))) * (current_position[0] - self.x * 0.5)) * weight
+            # value = math.log2((1 / (1 - target.area / (self.x * self.y))) * (current_position[0] - self.x * 0.5)) * weight
+            value = 5
             direction = "right"
         else:
             # sigmoid function to scale the difference of area
-            value = (1 / (1 + math.exp(-(1 - (target.area / standard_area)) * 4)) + 1) * 5
+            # value = (1 / (1 + math.exp(-(1 - (target.area / standard_area)) * 4)) + 1) * 5
+            value = 18
         return (direction, int(value))
 
     def keypoint_detect(self, gray):
@@ -317,7 +321,7 @@ class Follow(threading.Thread):
         else:
             frame = cv2.resize(frame, (self.x, self.y))
             return frame
-
+'''
     def creat_TCP_socket(self, ip, port):
         SERVER_IP = ip
         SERVER_PORT = port
@@ -342,10 +346,11 @@ class Follow(threading.Thread):
                 time.sleep(0.5)
                 continue
         return socket_tcp
-
+'''
     def print_msg(self, *args):
         print(self.id, " ".join(map(str, args)))
 if __name__ == "__main__":
-    follow_test = Follow('Follow_test', '127.0.0.1', 8888, testing=True)
+    follow_instruction = deque(maxlen = 5)
+    follow_test = Follow('Follow_test', follow_instruction, testing=True)
     print("Start Follow")
     follow_test.start()
