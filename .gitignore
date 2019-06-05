@@ -19,3 +19,6 @@ UserTracking/deprecated_file/server_thread.log
 UserTracking/deprecated_file/test.jpg
 UserTracking/deprecated_file/tracking-output.avi
 UserTracking/deprecated_file/webCam.py
+*.bin
+*.ipch
+UserTracking/sendingTest.py

@@ -7,7 +7,7 @@ import socket
 import threading
 import numpy as np
 from collections import deque
-import SingleStickSSDwithUSBCamera_OpenVINO_NCS2_robot as SSD
+from . import SingleStickSSDwithUSBCamera_OpenVINO_NCS2_robot as SSD
 import sys
 import termios
 import tty
@@ -63,44 +63,48 @@ class Follow(threading.Thread):
             return
 
         while(True):
-            # get camera image
-            start_time = time.time()
-            frame = self.get_frame()
-            objects = self.person_detect(frame)
-            target = self.target_search(frame, objects)
-            if target is None:
-                self.print_msg("Can't find target.")
-            else:
-                instruction = self.make_instruction(target)
-                # send instruction
-                data = instruction[0] + ' ' + str(instruction[1])
-                if self.connect_motor is True:
-                    self.motor_control([self.action_dict[instruction[0]], instruction[1]])
+            try:
+                # get camera image
+                start_time = time.time()
+                frame = self.get_frame()
+                objects = self.person_detect(frame)
+                target = self.target_search(frame, objects)
+                if target is None:
+                    self.print_msg("Can't find target.")
                 else:
-                    self.follow_instruction.appendleft([self.action_dict[instruction[0]], instruction[1]])
-                self.print_msg("Send follow instruction to server!", data)
+                    instruction = self.make_instruction(target)
+                    # send instruction
+                    data = instruction[0] + ' ' + str(instruction[1])
+                    if self.connect_motor is True:
+                        self.motor_control([self.action_dict[instruction[0]], instruction[1]])
+                    else:
+                        self.follow_instruction.appendleft([self.action_dict[instruction[0]], instruction[1]])
+                    self.print_msg("Send follow instruction to server!", data)
 
+                    if self.display is True:
+                        cv2.rectangle(frame, (target.box_left, target.box_top), (target.box_right, target.box_bottom), (0,0,255), 2)
+                        cv2.rectangle(frame, (self.prev_position[-2].box_left, self.prev_position[-2].box_top),
+                                         (self.prev_position[-2].box_right, self.prev_position[-2].box_bottom), (0,255,0), 2)
+                        cv2.putText(frame, data, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 1, cv2.LINE_AA)
+                        cv2.circle(frame, (int(target.center[0]), int(target.center[1])), 7, (0,0,255), -1)
                 if self.display is True:
-                    cv2.rectangle(frame, (target.box_left, target.box_top), (target.box_right, target.box_bottom), (0,0,255), 2)
-                    cv2.rectangle(frame, (self.prev_position[-2].box_left, self.prev_position[-2].box_top),
-                                     (self.prev_position[-2].box_right, self.prev_position[-2].box_bottom), (0,255,0), 2)
-                    cv2.putText(frame, data, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 1, cv2.LINE_AA)
-                    cv2.circle(frame, (int(target.center[0]), int(target.center[1])), 7, (0,0,255), -1)
-            if self.display is True:
-                cv2.line(frame, (int(self.x/2), 0), (int(self.x/2), self.y), (0,232,240), 3)
-                cv2.line(frame, (int(self.x * 0.4), 0), (int(self.x * 0.4), self.y), (27,211,218), 2)
-                cv2.line(frame, (int(self.x * 0.6), 0), (int(self.x * 0.6), self.y), (27,211,218), 2)
-                for i in range(len(self.prev_position)-1, -1, -1):
-                    if self.prev_position[i-1] is None or self.prev_position[i] is None:
-                        continue
-                    thickness = int(np.sqrt(10/float(i+1)) * 2.5)
-                    center1 = (int(self.prev_position[i].center[0]), int(self.prev_position[i].center[1]))
-                    center2 = (int(self.prev_position[i-1].center[0]), int(self.prev_position[i-1].center[1]))
-                    cv2.line(frame, center2, center1, (0,0,255), thickness)
-                cv2.imshow("Follow", frame)
-                cv2.waitKey(30)
-            diff_time = time.time() - start_time
-            self.print_msg("It takes %s second to finish a follow cycle.\n" % str(diff_time))
+                    cv2.line(frame, (int(self.x/2), 0), (int(self.x/2), self.y), (0,232,240), 3)
+                    cv2.line(frame, (int(self.x * 0.4), 0), (int(self.x * 0.4), self.y), (27,211,218), 2)
+                    cv2.line(frame, (int(self.x * 0.6), 0), (int(self.x * 0.6), self.y), (27,211,218), 2)
+                    for i in range(len(self.prev_position)-1, -1, -1):
+                        if self.prev_position[i-1] is None or self.prev_position[i] is None:
+                            continue
+                        thickness = int(np.sqrt(10/float(i+1)) * 2.5)
+                        center1 = (int(self.prev_position[i].center[0]), int(self.prev_position[i].center[1]))
+                        center2 = (int(self.prev_position[i-1].center[0]), int(self.prev_position[i-1].center[1]))
+                        cv2.line(frame, center2, center1, (0,0,255), thickness)
+                    cv2.imshow("Follow", frame)
+                    cv2.waitKey(30)
+                diff_time = time.time() - start_time
+                self.print_msg("It takes %s second to finish a follow cycle.\n" % str(diff_time))
+            except KeyboardInterrupt:
+                cv2.destroyAllWindows()
+                break
         pass
 
     def connect_motor_setting(self):
@@ -154,7 +158,10 @@ class Follow(threading.Thread):
         return (direction, int(value))
 
     def keypoint_detect(self, gray):
-        kps, des = self.orb.detectAndCompute(gray, None)
+        try:
+            kps, des = self.orb.detectAndCompute(gray, None)
+        except:
+            return [],[]
         return kps, des
 
     def keypoints_match(self, kp1, des1, kp2, des2):
