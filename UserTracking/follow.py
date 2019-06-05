@@ -8,6 +8,10 @@ import threading
 import numpy as np
 from collections import deque
 import SingleStickSSDwithUSBCamera_OpenVINO_NCS2_robot as SSD
+import sys
+import termios
+import tty
+import serial
 
 class TargetFeature(SSD.DetectionObject):
     center = [0, 0]
@@ -29,7 +33,7 @@ class TargetFeature(SSD.DetectionObject):
         self.keypoints = keypoint_list
 
 class Follow(threading.Thread):
-    def __init__(self, name, ip, port, camera_id = 0):
+    def __init__(self, name, ip, port, testing=False, camera_id = 0):
         threading.Thread.__init__(self)
         self.id = '[' + name + ']'
         self.camera_id = camera_id
@@ -43,12 +47,30 @@ class Follow(threading.Thread):
         self.timer = 0
         self.orb = cv2.ORB.create()
         self.bf = cv2.BFMatcher(normType=cv2.NORM_HAMMING)
+        self.testing = testing
 
     def run(self):
      #    self.decison_socket = self.creat_TCP_socket(self.decision_socket_ip, self.decision_socket_port)
         # input_source = "test.avi"
         #self.camera_init(camera_id=input_source)
-        
+
+        # Testing connect with motor
+        ser = ''
+        old_settings = ''
+        file = ''
+        line = ""
+        s = ""
+
+        if self.testing is True:
+            ser = serial.Serial('/dev/ttyACM0' , 9600)
+            old_settings = termios.tcgetattr(sys.stdin)
+            tty.setcbreak(sys.stdin.fileno())
+            if(ser.isOpen()):
+                print("connect\n")
+                file = open("result.txt",'w')
+                file.truncate()
+        # Testing connect with motor
+
         self.camera_init(camera_width=960, camera_height=540, camera_fps=30, camera_id = self.camera_id)
         # (320, 200)
         self.timer = time.time()
@@ -83,7 +105,60 @@ class Follow(threading.Thread):
                 instruction = self.make_instruction(target)
                 # send instruction
                 data = instruction[0] + ' ' + str(instruction[1])
-           #    self.decison_socket.send(bytes(data.encode('utf-8')))
+                # self.decison_socket.send(bytes(data.encode('utf-8')))
+
+                # Testing connect with motor
+                try:
+                    # speed(stop:0) , angle(left:positive; right:negative; straight:0)
+                    turnAngle = 0
+                    speed = 1.4
+                    constant_angle = 5
+                    # parse instruction from follow.py 
+                    if instruction[0] is 'straight':
+                        turnAngle = 0
+                        speed = 17
+                    elif instruction[0] is 'left':
+                        turnAngle = constant_angle
+                        speed = 3
+                    elif instruction[0] is 'right':
+                        turnAngle = -constant_angle
+                        speed = 3
+                    elif instruction[0] is 'stop':
+                        turnAngle = 0
+                        speed = 0
+                    else:
+                        turnAngle = 0
+                        speed = 0
+            
+                    # combine motor instruction
+                    line = str(speed) + ' ' + str(turnAngle)
+                    ser.write(line.encode())
+                    ser.write('\n'.encode())
+                    print(line)
+
+                    time.sleep(0.05)
+                    line = ""
+                    if ser.in_waiting:
+                        #print("received")
+                        cin = ser.read(1)
+                        if cin != b'\n':
+                            cin = cin.decode(encoding='utf-8' , errors='ignore')
+                            s += cin
+                        else:
+                            print("received:" + s)
+                            file.write(s + '\n')
+                            s = ""
+                except KeyboardInterrupt:
+
+                    ser.write('0'.encode())
+                    ser.write('\n'.encode())
+                    ser.close()
+                    file.close()
+                    if(~ser.isOpen()):
+                        print("closed\n")
+                        break
+                # Testing connect with motor
+
                 self.print_msg("Send follow instruction to server!", data)
                 cv2.rectangle(frame, (target.box_left, target.box_top), (target.box_right, target.box_bottom), (0,0,255), 2)
                 cv2.rectangle(frame, (self.prev_position[-2].box_left, self.prev_position[-2].box_top),
@@ -102,8 +177,8 @@ class Follow(threading.Thread):
                 cv2.line(frame, center2, center1, (0,0,255), thickness)
             cv2.namedWindow("Follow", cv2.WINDOW_NORMAL)
             cv2.resizeWindow("Follow", 640, 360)
-            cv2.imshow("Follow", frame)
-            cv2.waitKey(30)
+            #cv2.imshow("Follow", frame)
+            #cv2.waitKey(30)
         pass
 
     def make_instruction(self, target):
@@ -137,6 +212,8 @@ class Follow(threading.Thread):
         if des1 is None or des2 is None:
             return 0, 0
         raw_matches = self.bf.knnMatch(des1, des2, k=2)
+        if raw_matches is None or raw_matches[0] is None or raw_matches[1] is None:
+            return 0, 0
         good_matches = [m for (m, n) in raw_matches if m.distance < 0.65 * n.distance]
 
         #raw_number = len(raw_matches)
@@ -269,6 +346,6 @@ class Follow(threading.Thread):
     def print_msg(self, *args):
         print(self.id, " ".join(map(str, args)))
 if __name__ == "__main__":
-    follow_test = Follow('Follow_test', '127.0.0.1', 8888)
+    follow_test = Follow('Follow_test', '127.0.0.1', 8888, testing=True)
     print("Start Follow")
     follow_test.start()
