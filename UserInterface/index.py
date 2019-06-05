@@ -30,7 +30,7 @@ def dataFromAjax():
 	#x,y = 6,1
 	x=[1,1,1,1,2,3,4,5,6,7,7,7,7,6,5,4,3,2]
 	y=[4,3,2,1,1,1,1,1,1,1,2,3,4,4,4,4,4,4]
-	index = random.randint(1,5)
+	index = random.randint(0,5)
 	#print(x,y)
 	result = {'x':x[index],'y':y[index]}
 	#result = ['aa',5]

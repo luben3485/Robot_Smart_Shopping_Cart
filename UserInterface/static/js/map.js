@@ -1,5 +1,5 @@
 $(document).ready(function(){
-var timer = setInterval(function(){ajax_func()},5000);
+var timer = setInterval(function(){ajax_func()},2000);
 var game = new Phaser.Game(900, 450, Phaser.AUTO, 'TutContainer', { preload: preload, create: create, update:update });
 var upKey;
 var downKey;
@@ -618,7 +618,7 @@ function ajax_func(){
                 url: '/predictLocation',
                 type: 'GET',
                 cache:false,
-                async:false,
+                //async:false,
                 data: {
                     'mode':1,
                 },
