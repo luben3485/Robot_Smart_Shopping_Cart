@@ -21,7 +21,7 @@ class Commander(object):
         self.old_settings = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
         follow_instruction = deque(maxlen = 5)
-        self.follow_thread = follow.Follow(args.name + '_follow', follow_instruction)
+        self.follow_thread = follow.Follow(args.name + '_follow', follow_instruction, self.display)
         self.follow_thread.start()
         avoid.obstacleAvoidance(init=True)
         final_instruction = []
@@ -35,7 +35,7 @@ class Commander(object):
                 if avoidance != 0:
                     final_instruction = [0, avoidance]
                     self.print_msg('Avoidance:', 'turn left' if avoidance > 0 else 'turn right')
-                self.motorControl(final_instruction)
+                self.motor_control(final_instruction)
 
             except KeyboardInterrupt:
                 self.ser.write('0'.encode())
@@ -48,8 +48,8 @@ class Commander(object):
                 break
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_settings)
     
-    def motorControl(self, instruction):
-        try:            
+    def motor_control(self, instruction):
+        try:
             # combine motor instruction
             s = ''
             line = str(instruction[0]) + ' ' + str(instruction[1])
