@@ -6,7 +6,7 @@ import tty
 import serial
 import determineDistance
 import bubbleRebound
-
+import kalman
 ser = serial.Serial('/dev/ttyACM0' , 9600)
 old_settings = termios.tcgetattr(sys.stdin)
 tty.setcbreak(sys.stdin.fileno())
@@ -16,11 +16,14 @@ if(ser.isOpen()):
     file.truncate()
     line = ""
     s = ""
+    pre = [0]*6
+    ini = 0
     while True:
         sleep(.001)
-        if select.select([sys.stdin],[],[],0) == ([sys.stdin], [], []):
+        try:
+        #if select.select([sys.stdin],[],[],0) == ([sys.stdin], [], []):
             '''
-			c = sys.stdin.read(1)
+            c = sys.stdin.read(1)
             if c == '\x1b':
                 ser.write('0'.encode())
                 ser.write('\n'.encode())
@@ -41,34 +44,54 @@ if(ser.isOpen()):
             '''
             
             determineDistance.get_distance()
-            for i in range(len(determineDistance.distance)):
-                print("before sensor %d %f" % (i,determineDistance.distance[i]))	
-	
-            if bubbleRebound.checkObstacles(determineDistance.distance):
-                turnAngle = bubbleRebound.calculateAngle(determineDistance.distance)
+            distanceKalman = kalman.kalmanFilter(determineDistance.distance)
+            
+            #distanceKalman = determineDistance.distance
+            
+            if(ini ==0):
+                pre = determineDistance.distance
+                ini +=1
+            else:
+                for i in range(len(distanceKalman)):
+                    if abs(pre[i]-determineDistance.distance[i]) >=70:
+                        distanceKalman[i] = pre[i] 
+                    pre[i] = distanceKalman[i]
+            
+            for i in range(len(distanceKalman)):
+                print("after sensor %d %f" % (i,distanceKalman[i]))	
+            if bubbleRebound.checkObstacles(distanceKalman):
+                turnAngle = bubbleRebound.calculateAngle(distanceKalman)
                 print("turnAngle:%f" % turnAngle)
-				line = "0 "+ str(turnAngle)
+                line = "0 "+ str(turnAngle)
                 ser.write(line.encode())
                 ser.write('\n'.encode())
 
             else:
                 print("turnAngle:(safe)")
-				line = "0.3 0.3"
+                line = "0.4 0"
                 ser.write(line.encode())
                 ser.write('\n'.encode())
 
 
-            sleep(0.1)
+            sleep(0.05)
             line = ""
-        if ser.in_waiting:
-            #print("received")
-            cin = ser.read(1)
-            if cin != b'\n':
-                cin = cin.decode(encoding='utf-8' , errors='ignore')
-                s += cin
-            else:
-                print("received:" + s)
-                file.write(s + '\n')
-                s = ""
+            if ser.in_waiting:
+                #print("received")
+                cin = ser.read(1)
+                if cin != b'\n':
+                    cin = cin.decode(encoding='utf-8' , errors='ignore')
+                    s += cin
+                else:
+                    print("received:" + s)
+                    file.write(s + '\n')
+                    s = ""
+        except KeyboardInterrupt:
 
+            ser.write('0'.encode())
+            ser.write('\n'.encode())
+            ser.close()
+            file.close()
+            if(~ser.isOpen()):
+                print("closed\n")
+            break
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)

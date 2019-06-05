@@ -5,6 +5,7 @@ import time
 import math
 import socket
 import threading
+import numpy as np
 from collections import deque
 import SingleStickSSDwithUSBCamera_OpenVINO_NCS2_robot as SSD
 
@@ -14,7 +15,7 @@ class TargetFeature(SSD.DetectionObject):
     img = None
     gray_img = None
     keypoints = None
-    def __init__(self, target, target_img, kps):
+    def __init__(self, target, target_img, keypoint_list):
         self.box_left = target.box_left
         self.box_top = target.box_top
         self.box_right = target.box_right
@@ -25,34 +26,44 @@ class TargetFeature(SSD.DetectionObject):
         self.area = (target.box_right - target.box_left) * (target.box_bottom - target.box_top)
         self.img = target_img
         self.gray_img = cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY)
-        self.keypoints = kps
+        self.keypoints = keypoint_list
 
 class Follow(threading.Thread):
-    def __init___(self, name, ip, port):
+    def __init__(self, name, ip, port, camera_id = 0):
         threading.Thread.__init__(self)
         self.id = '[' + name + ']'
+        self.camera_id = camera_id
         self.decision_socket_ip = ip
         self.decision_socket_port = port
         self.decison_socket = None
-        self.prev_positon = deque(maxlen = 10)
+        self.prev_position = deque(maxlen = 10)
         self.x = 0
         self.y = 0
         self.frame_center = [0, 0] # [x, y] frame center point
+        self.timer = 0
+        self.orb = cv2.ORB.create()
+        self.bf = cv2.BFMatcher(normType=cv2.NORM_HAMMING)
 
     def run(self):
-        self.decison_socket = self.creat_TCP_socket(self.decision_socket_ip, self.decision_socket_port)
+     #    self.decison_socket = self.creat_TCP_socket(self.decision_socket_ip, self.decision_socket_port)
         # input_source = "test.avi"
         #self.camera_init(camera_id=input_source)
-        self.camera_init()
+        
+        self.camera_init(camera_width=1280, camera_height=720, camera_fps=30, camera_id = self.camera_id)
+        # (320, 200)
+        self.timer = time.time()
         frame = self.get_frame()
         if frame is None:
             self.print_msg("Camera or Video can't open!!!")
 
         while(True):
             # get camera image
+            start_time = time.time()
             frame = self.get_frame()
             # call function person_detect() get result
             objects = self.person_detect(frame)
+            # test tracking
+            # self.target_tracking(objects, frame)
             # call function target_search() analysis target position
             #      include: characteristic_compare() select target from people
             #               feature_calculate() calculate target feature
@@ -62,14 +73,37 @@ class Follow(threading.Thread):
             #      include: momentum calculate & compare with previous position
             #               judge the rationality of the position
             #               according to (x,y), target size, center position make instruction
+            diff_time = time.time() - start_time
+            self.print_msg("It takes %s second to find target.\n" % str(diff_time))
             if target is None:
-                continue
+                # continue
+                cv2.imshow("Follow", frame)
+                print()
             else:
                 instruction = self.make_instruction(target)
                 # send instruction
-                data = instruction[0] + ' ' + instruction[1]
-                self.decison_socket.send(bytes(data.encode('utf-8')))
+                data = instruction[0] + ' ' + str(instruction[1])
+           #    self.decison_socket.send(bytes(data.encode('utf-8')))
                 self.print_msg("Send follow instruction to server!", data)
+                cv2.rectangle(frame, (target.box_left, target.box_top), (target.box_right, target.box_bottom), (0,0,255), 2)
+                cv2.rectangle(frame, (self.prev_position[-2].box_left, self.prev_position[-2].box_top),
+                                     (self.prev_position[-2].box_right, self.prev_position[-2].box_bottom), (0,255,0), 2)
+                cv2.putText(frame, data, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 1, cv2.LINE_AA)
+                cv2.circle(frame, (int(target.center[0]), int(target.center[1])), 7, (0,0,255), -1)
+            cv2.line(frame, (int(self.x/2), 0), (int(self.x/2), self.y), (0,232,240), 3)
+            cv2.line(frame, (int(self.x * 0.4), 0), (int(self.x * 0.4), self.y), (27,211,218), 2)
+            cv2.line(frame, (int(self.x * 0.6), 0), (int(self.x * 0.6), self.y), (27,211,218), 2)
+            for i in range(len(self.prev_position)-1, -1, -1):
+                if self.prev_position[i-1] is None or self.prev_position[i] is None:
+                    continue
+                thickness = int(np.sqrt(10/float(i+1)) * 2.5)
+                center1 = (int(self.prev_position[i].center[0]), int(self.prev_position[i].center[1]))
+                center2 = (int(self.prev_position[i-1].center[0]), int(self.prev_position[i-1].center[1]))
+                cv2.line(frame, center2, center1, (0,0,255), thickness)
+            cv2.namedWindow("Follow", cv2.WINDOW_NORMAL)
+            cv2.resizeWindow("Follow", 640, 360)
+            cv2.imshow("Follow", frame)
+            cv2.waitKey(30)
         pass
 
     def make_instruction(self, target):
@@ -77,7 +111,7 @@ class Follow(threading.Thread):
         value = 0
         weight = 1
         if target.area > self.x * self.y * 0.6:
-            diection = "stop"
+            direction = "stop"
             return (direction, int(value))
         standard_area = self.x * self.y * 0.3
         current_position = target.center
@@ -92,98 +126,100 @@ class Follow(threading.Thread):
             value = (1 / (1 + math.exp(-(1 - (target.area / standard_area)) * 4)) + 1) * 5
         return (direction, int(value))
 
-
-    def feature_calculate(self, target):
-        target_center = [(target.box_right + target.box_left)/2,
-                         (target.box_bottom + target.box_top)/2]
-        # temp condition
-        # displacement between previous frame and current frame must smaller than 20% of weight and height
-        if (target_center[0] <= self.prev_positon[-1].center[0] + self.x * 0.2) and (target_center[0] >= self.prev_positon[-1].center[0] - self.x * 0.2):
-            return True
-        else:
-            return False
-
     def keypoint_detect(self, gray):
-        detector = cv2.FastFeatureDetector_create("FAST")
-        kps = detector.detect(gray)
-        return kps
+        # orb = cv2.ORB.create()
+        kps, des = self.orb.detectAndCompute(gray, None)
+        return kps, des
 
-    def SURF(self, grayImg, kpsData):
-        extractor = cv2.DescriptorExtractor_create("SURF")
-        (kps, descs) = extractor.compute(grayImg, kpsData)
-        if len(kps) > 0:
-            return (kps, descs)
-        else:
-            return ([], None)
+    def keypoints_match(self, kp1, des1, kp2, des2):
+        # bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        # bf = cv2.BFMatcher(normType=cv2.NORM_HAMMING)
+        if des1 is None or des2 is None:
+            return 0, 0
+        raw_matches = self.bf.knnMatch(des1, des2, k=2)
+        good_matches = [m for (m, n) in raw_matches if m.distance < 0.65 * n.distance]
 
-    def feature_matching(self, prevImg, targetImg, prevFeature, targetFeature):
-        # resize to width = 600px
-        #prevImg = imutils.resize(prevImg, width = 600)
-        #targetImg = imutils.resize(targetImg, width = 600)
-        matcher = cv2.DescriptorMatcher_create("BruteForce")
-        rawMatches = matcher.knnMatch(prevFeature[1], targetFeature[1], 2)
-        matches = []
-        # match each pair of keypoints
-        for m in rawMatches:
-            print("#1:{} , #2:{}".format(m[0].distance, m[1].distance))
-            if len(m) == 2 and m[0].distance < m[1].distance * 0.8:
-                matches.append((m[0].trainIdx, m[0].queryIdx))
-        # temp condition
-        # It should be some rate of match keypoints
-        if len(matches) > 5:
-            return 1
-        else:
-            return 0
+        #raw_number = len(raw_matches)
+        good_number = len(good_matches)
+        #ratio = good_number / raw_number
+        ratio = 0
+
+        #print("Origin matches:", raw_number)
+        #print("After matches:", good_number)
+        #print("Match ratio:", ratio)
+        return ratio, good_number
 
     def target_search(self, frame, objects):
         target_objects = []
         for obj in objects:
             if obj.class_name is 'person':
                 target_objects.append(obj)
+        if target_objects is None:
+            return None
         # when number of previous position is less 5
-        if len(self.prev_positon) < 5:
+        if len(self.prev_position) < 5:
             for target in target_objects:
                 if target.confidence < 0.7:
                     continue
                 target_center = [(target.box_right + target.box_left)/2,
                                  (target.box_bottom + target.box_top)/2]
                 # when target center between x-center of frame +- 20%
-                if (target_center[0] <= self.frame_center + self.x * 0.2) and (target_center[0] >= self.frame_center - self.x * 0.2):
+                if (target_center[0] <= self.frame_center[0] + self.x * 0.2) and (target_center[0] >= self.frame_center[0] - self.x * 0.2):
                     # crop target reigon in frame
                     target_img = frame[target.box_top:target.box_bottom, target.box_left:target.box_right]
-                    kps = self.keypoint_detect(cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY))
-                    self.prev_positon.append(TargetFeature(target, target_img, kps))
+                    print(target_img.shape)
+                    if (target_img.shape[0] == 0 or target_img.shape[1] == 0):
+                        continue
+                    kps, des = self.keypoint_detect(cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY))
+                    self.prev_position.append(TargetFeature(target, target_img, [kps, des]))
                     return None
             return None
         else:
-            for target in target_objects:
+            limit_match_points = 4
+            result_list = []
+            for j in range(len(target_objects)):
+                target = target_objects[j]
                 if target.confidence < 0.7:
                     continue
-                # reduce computing time of compare
-                # delete some impossible objects
-                if not self.feature_calculate(target):
-                    continue
-                # compare with previous image
                 target_img = frame[target.box_top:target.box_bottom, target.box_left:target.box_right]
+                print(target_img.shape)
+                if (target_img.shape[0] == 0 or target_img.shape[1] == 0):
+                    continue
                 gray = cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY)
-                kps = self.keypoint_detect(gray)
+                time1 = time.time()
+                kps, des = self.keypoint_detect(gray)
+                print("keypoint detect time:", time.time()-time1)
                 # temp condition
-                result1 = self.feature_matching(self.prev_positon[-1].gray_img, gray,
-                                      self.SURF(self.prev_positon[-1].gray_img, self.prev_positon[-1].keypoints), self.SURF(gray, kps))
-                result2 = self.feature_matching(self.prev_positon[-2].gray_img, gray,
-                                      self.SURF(self.prev_positon[-2].gray_img, self.prev_positon[-2].keypoints), self.SURF(gray, kps))
-                result3 = self.feature_matching(self.prev_positon[-3].gray_img, gray,
-                                      self.SURF(self.prev_positon[-3].gray_img, self.prev_positon[-3].keypoints), self.SURF(gray, kps))
-                if result1 + result2 + result3 >= 2:
-                    self.prev_positon.append(TargetFeature(target, target_img, kps))
-                    return TargetFeature(target, target_img, kps)
+                count = 0
+                total_points = 0
+                distance = 0
+                center = [(target.box_left + target.box_right)/2, (target.box_top + target.box_bottom)/2]
+                time1 = time.time()
+                for i in range(1, 3, 1):
+                    match_points = self.keypoints_match(self.prev_position[-i].keypoints[0], self.prev_position[-i].keypoints[1], kps, des)
+                    total_points += match_points[1]
+                    if match_points[1] > limit_match_points:
+                        count += 1
+                    if i <= 3:
+                        distance += (np.square(center[0] - self.prev_position[-i].center[0]) + np.square(center[1] - self.prev_position[-i].center[1]))
+                result_list.append((j, distance, total_points, count, target_img, [kps, des]))
+                print("keypoint match time", time.time() - time1)
+            if result_list is None:
+                return None
+            distance_list = sorted(result_list, key=lambda x: x[1])
+            points_list = []
+            for i in range(len(distance_list)):
+                if distance_list[0][1] / distance_list[i][1] > 0.9:
+                    points_list.append(distance_list[i])
+            final_list = sorted(points_list, key=lambda x: x[2], reverse=True)
+            if len(final_list) > 0:
+                index = final_list[0][0]
+                self.prev_position.append(TargetFeature(target_objects[index], final_list[0][4], final_list[0][5]))
+                return TargetFeature(target, target_img, kps)
             return None
 
     def person_detect(self, frame):
-        start_time = time.time()
         objects = SSD.SSD_predict(frame)
-        diff_time = time.time() - start_time
-        self.print_msg("It takes %s second for detect object.\n" % str(diff_time))
         return objects
 
     def camera_init(self, camera_width = 960, camera_height = 720, camera_fps = 30, camera_id = 0):
@@ -191,8 +227,10 @@ class Follow(threading.Thread):
         self.cap.set(cv2.CAP_PROP_FPS, camera_fps)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, camera_width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, camera_height)
-        self.x = camera_width
-        self.y = camera_height
+        self.x = int(camera_width / 4 * 3)
+        #self.x = 960
+        self.y = int(camera_height / 4 * 3)
+        #self.y = 540
         self.frame_center = [camera_width / 2, camera_height / 2]
 
     def get_frame(self):
@@ -200,6 +238,7 @@ class Follow(threading.Thread):
         if not hasFrame:
             return None
         else:
+            frame = cv2.resize(frame, (self.x, self.y))
             return frame
 
     def creat_TCP_socket(self, ip, port):
@@ -229,3 +268,7 @@ class Follow(threading.Thread):
 
     def print_msg(self, *args):
         print(self.id, " ".join(map(str, args)))
+if __name__ == "__main__":
+    follow_test = Follow('Follow_test', '127.0.0.1', 8888, 'video.avi')
+    print("Start Follow")
+    follow_test.start()
