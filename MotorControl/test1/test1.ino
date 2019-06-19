@@ -19,11 +19,11 @@ void setup(){
 void loop(){ 
     serial_update();
 
-    String trans = String(speed2 , 2);
-    char s[10] = {};
-    trans.toCharArray(s,10);
-    s[strlen(s)]='\n';
-    Serial.write(s);
+    //String trans = String(speed2 , 2);
+    //char s[10] = {};
+    //trans.toCharArray(s,10);
+    //s[strlen(s)]='\n';
+    //Serial.write(s);
     //delay(1000);
 
     //PWM2 = 100;
@@ -33,8 +33,8 @@ void loop(){
     //s[strlen(s)]= '\n';
     //Serial.write(s);
 
-    analogWrite(MOTOR1 , PWM1);
-    analogWrite(MOTOR2 , PWM2);
+    //analogWrite(MOTOR1 , PWM1);
+    //analogWrite(MOTOR2 , PWM2);
 }
 
 void serial_update(){

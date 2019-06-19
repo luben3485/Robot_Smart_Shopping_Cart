@@ -21,21 +21,25 @@ class Commander(object):
         self.old_settings = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
         follow_instruction = deque(maxlen = 5)
-        self.follow_thread = follow.Follow(args.name + '_follow', follow_instruction, self.display, self.log)
+        self.follow_thread = follow.Follow(args.name + '_follow', follow_instruction, 0, False, self.display, self.log)
         self.follow_thread.start()
         avoid.obstacleAvoidance(init=True)
         final_instruction = []
         self.print_msg('Start!!!')
         t1 = time.time()
         avoidance = 0
+        log_file = open("cart.log", "w")
         while True:
             try:
                 if len(follow_instruction) > 0:
                     final_instruction.append(follow_instruction[0])
                     follow_instruction.clear()
-                                
-                avoidance = avoid.obstacleAvoidance()
+                if len(final_instruction) > 0 and final_instruction[0] is 0:
+                    avoidance = 0
+                else:
+                    avoidance = avoid.obstacleAvoidance()
                 if avoidance != 0:
+                    log_file.write("Avoidance instruction:" + str(avoidance))
                     final_instruction.clear()
                     final_instruction.append([0, avoidance])
                     self.print_msg('Avoidance:', 'turn left' if avoidance > 0 else 'turn right')
@@ -93,7 +97,7 @@ if __name__ == "__main__":
     parser = ArgumentParser(description='Manage Follow & Avoidence')
     parser.add_argument("-l", "--log", dest="log", default=True)
     parser.add_argument("-n", "--name", dest="name", default='Cart')
-    parser.add_argument("-d", "--display", dest="display", default=False)
+    parser.add_argument("-d", "--display", dest="display", default=True)
     args = parser.parse_args()
     commander = Commander(name=args.name, display=args.display, log=args.log)
     commander.start()
