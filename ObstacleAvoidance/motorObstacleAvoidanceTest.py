@@ -68,7 +68,7 @@ if(ser.isOpen()):
 
             else:
                 print("turnAngle:(safe)")
-                line = "0.4 0"
+                line = "20 0"
                 ser.write(line.encode())
                 ser.write('\n'.encode())
 

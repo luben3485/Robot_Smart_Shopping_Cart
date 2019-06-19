@@ -105,7 +105,7 @@ class Follow(threading.Thread):
                     if self.connect_motor is True:
                         self.motor_control([self.action_dict[instruction[0]], instruction[1]])
                     else:
-                        self.follow_instruction.appendleft([self.action_dict[instruction[0]], instruction[1]])
+                        self.follow_instruction.appendleft([instruction[1], self.action_dict[instruction[0]]])
                     self.print_msg("Send follow instruction to server!", data)
                     self.print_msg("Detect object in total area rate:", target.area / self.x * self.y)
                     if self.display is True:
@@ -196,7 +196,7 @@ class Follow(threading.Thread):
         if target.area > self.x * self.y * 0.35:
             value = 12
         else:
-            value = 18
+            value = 20
         return (direction, int(value))
 
     def keypoint_detect(self, gray):

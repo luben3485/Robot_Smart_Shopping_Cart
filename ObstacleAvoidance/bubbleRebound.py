@@ -1,4 +1,4 @@
-bubbleBoundary = [30, 30, 80, 80, 30, 30]
+bubbleBoundary = [30, 30, 70, 70, 30, 30]
 def checkObstacles(distance):
 	
 	for i in range(6):
