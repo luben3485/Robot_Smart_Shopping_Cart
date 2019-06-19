@@ -43,8 +43,10 @@ class Follow(threading.Thread):
         self.decison_socket = None
         self.action_dict = {'straight':0, 'stop':0, 'left':5, 'right':-5}
         self.prev_position = deque(maxlen = 10)
+        self.prev_instruction = deque(maxlen = 10)
         self.x = 0
         self.y = 0
+        self.missing_count = 0
         self.match_check = 0
         self.frame_center = [0, 0] # [x, y] frame center point
         self.orb = cv2.ORB.create()
@@ -62,6 +64,8 @@ class Follow(threading.Thread):
         if frame is None:
             self.print_msg("Camera or Video can't open!!!")
             return
+        for i in range(0, 10):
+            self.prev_instruction.appendleft(("stop", 0))
 
         while(True):
             try:
@@ -72,7 +76,26 @@ class Follow(threading.Thread):
                 target = self.target_search(frame, objects)
                 if target is None:
                     self.print_msg("Can't find target.")
+                    self.missing_count += 1
+                    if self.missing_count > 8:
+                        direction = self.prev_instruction[0]
+                        if self.prev_instruction[0] is not "right" or self.prev_instruction[0] is not "left":
+                            direction = "right"
+                        data = direction + ' ' + str(0)
+                        if self.connect_motor is True:
+                            self.motor_control([self.action_dict[direction], 0])
+                        else:
+                            self.follow_instruction.appendleft([self.action_dict[direction], 0])
+                        self.print_msg("Send follow instruction to server!", data)
+                    else:
+                        data = self.prev_instruction[0] + ' ' + str(self.prev_instruction[1])
+                        if self.connect_motor is True:
+                            self.motor_control([self.action_dict[self.prev_instruction[0]], self.prev_instruction[1]])
+                        else:
+                            self.follow_instruction.appendleft([self.action_dict[self.prev_instruction[0]], self.prev_instruction[1]])
+                        self.print_msg("Send follow instruction to server!", data)
                 else:
+                    self.missing_count = 0
                     instruction = self.make_instruction(target)
                     # send instruction
                     data = instruction[0] + ' ' + str(instruction[1])
@@ -81,7 +104,7 @@ class Follow(threading.Thread):
                     else:
                         self.follow_instruction.appendleft([self.action_dict[instruction[0]], instruction[1]])
                     self.print_msg("Send follow instruction to server!", data)
-
+                    self.print_msg("Detect object in total area rate:", target.area / self.x * self.y)
                     if self.display is True:
                         cv2.rectangle(frame, (target.box_left, target.box_top), (target.box_right, target.box_bottom), (0,0,255), 2)
                         cv2.rectangle(frame, (self.prev_position[-2].box_left, self.prev_position[-2].box_top),
@@ -144,16 +167,31 @@ class Follow(threading.Thread):
     def make_instruction(self, target):
         direction = "straight"
         value = 0
-        if target.area > self.x * self.y * 0.45:
+        repeat_count = 0
+        tmp = self.prev_instruction[0]
+        for inst in self.prev_instruction:
+            if tmp is inst[0]:
+                repeat_count += 1
+            else:
+                break
+        if target.area > self.x * self.y * 0.35:
             direction = "stop"
             return (direction, int(value))
         current_position = target.center
         if current_position[0] < self.x * 0.4:
-            value = 5
+            value = 3 + repeat_count + pow(2, repeat_count//3)
             direction = "left"
         elif current_position[0] > self.x * 0.6:
-            value = 5
+            value = 3 + repeat_count + pow(2, repeat_count//3)
             direction = "right"
+        if target.area < self.x * self.y * 0.15:
+            value = 25
+        if target.area < self.x * self.y * 0.25:
+            value = 20
+        if target.area > self.x * self.y * 0.25:
+            value = 15
+        if target.area > self.x * self.y * 0.35:
+            value = 12
         else:
             value = 18
         return (direction, int(value))
