@@ -21,7 +21,7 @@ class Commander(object):
         self.old_settings = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
         follow_instruction = deque(maxlen = 5)
-        self.follow_thread = follow.Follow(args.name + '_follow', follow_instruction, self.display)
+        self.follow_thread = follow.Follow(args.name + '_follow', follow_instruction, self.display, self.log)
         self.follow_thread.start()
         avoid.obstacleAvoidance(init=True)
         final_instruction = []

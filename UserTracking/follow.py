@@ -33,13 +33,14 @@ class TargetFeature(SSD.DetectionObject):
         self.keypoints = keypoint_list
 
 class Follow(threading.Thread):
-    def __init__(self, name, follow_instruction, camera_id = 0, connect_motor=False, display=False):
+    def __init__(self, name, follow_instruction, camera_id = 0, connect_motor=False, display=False, log=False):
         threading.Thread.__init__(self)
         self.id = '[' + name + ']'
         self.follow_instruction = follow_instruction
         self.camera_id = camera_id
         self.connect_motor = connect_motor
         self.display = display
+        self.log = log
         self.decison_socket = None
         self.action_dict = {'straight':0, 'stop':0, 'left':5, 'right':-5}
         self.prev_position = deque(maxlen = 10)
@@ -58,6 +59,8 @@ class Follow(threading.Thread):
         if self.display is True:    
             cv2.namedWindow("Follow", cv2.WINDOW_NORMAL)
             cv2.resizeWindow("Follow", 640, 360)
+        if self.log is True:
+            self.log_file = open('follow.log', 'w')
 
         self.camera_init(camera_width=960, camera_height=540, camera_fps=30, camera_id = self.camera_id)
         frame = self.get_frame()
@@ -346,9 +349,11 @@ class Follow(threading.Thread):
 
     def print_msg(self, *args):
         print(self.id, " ".join(map(str, args)))
+        if self.log is True:
+            self.log.write(self.id, " ".join(map(str, args)))
 
 if __name__ == "__main__":
     follow_instruction = deque(maxlen = 5)
-    follow_test = Follow('Follow_test', follow_instruction, connect_motor=True, display=False)
+    follow_test = Follow('Follow_test', follow_instruction, connect_motor=True, display=False, log=False)
     print("Start Follow")
     follow_test.start()
