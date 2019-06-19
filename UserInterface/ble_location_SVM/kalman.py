@@ -1,8 +1,8 @@
 import random
-import rssi_six
+import rssi
 import math
 
-def RSSI_ave_six():
+def RSSI_ave():
 	iteration = 0
 	count1 = 0
 	count2 = 0
