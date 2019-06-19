@@ -1,5 +1,8 @@
 from sklearn.externals import joblib
 import numpy as np
-svc_fit = joblib.load('model/svc_0115.pkl') 
-x=np.array([[-0.3,-0.4,-0.1,-0.7,-0.25,-0.1]])
-print(svc_fit.predict(x))
+import kalman_filter_six
+svc_fit = joblib.load('model/svc_20190605.pkl') 
+for i in range(30):
+	R1,R2,R3,R4,R5,R6,R7 = kalman_filter_six.rssi_kalman_filter_six()
+	x=np.array([[R1,R2,R3,R4,R5,R6,R7]])
+	print(svc_fit.predict(x))

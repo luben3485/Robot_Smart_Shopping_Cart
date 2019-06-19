@@ -10,35 +10,40 @@ def RSSI_ave():
 	count4 = 0
 	count5 = 0
 	count6 = 0
+	count7 = 0
 	R1 = 0
 	R2 = 0
 	R3 = 0
 	R4 = 0
 	R5 = 0
 	R6 = 0
+	R7 = 0
 	while 1:
 		iteration +=1
 		devices = rssi_six.RSSI()
 		for device in devices:
-			if device.addr == u'20:c3:8f:8d:82:d3':
+			if device.addr == u'12:3b:6a:1b:bb:05':
 				count1 += 1
 				R1 += device.rssi
-			if device.addr == u'20:c3:8f:8d:7e:40':
+			if device.addr == u'12:3b:6a:1b:bb:13':
 				count2 += 1
 				R2 += device.rssi
-			if device.addr == u'20:c3:8f:8d:7c:55':
+			if device.addr == u'12:3b:6a:1b:ba:a5':
 				count3 += 1
 				R3 += device.rssi
-			if device.addr == u'20:c3:8f:8d:7e:31':
+			if device.addr == u'12:3b:6a:1b:bd:c7':
 				count4 += 1
 				R4 += device.rssi
-			if device.addr == u'20:c3:8f:8d:91:7e':
+			if device.addr == u'12:3b:6a:1b:bb:06':
 				count5 += 1
 				R5 += device.rssi
-			if device.addr == u'20:c3:8f:8d:82:d0':
+			if device.addr == u'12:3b:6a:1b:bd:e4':
 				count6 += 1
 				R6 += device.rssi
-			print(count1,count2,count3,count4,count5,count6)
+			if device.addr == u'12:3b:6a:1b:b5:d8':
+				count7 += 1
+				R7 += device.rssi
+			print(count1,count2,count3,count4,count5,count6,count7)
 		if iteration >=20:
 			if count1 == 0:
 				R1 = -80
@@ -58,8 +63,11 @@ def RSSI_ave():
 			if count6 == 0:
 				R6 = -80
 				count6 = 1
+			if count7 == 0:
+				R7 = -80
+				count7 = 1
 			break
-		if count1 >= 1 and count2 >= 1 and count3 >= 1 and count4 >=1 and count5 >=1 and count6>=1:
+		if count1 >= 1 and count2 >= 1 and count3 >= 1 and count4 >=1 and count5 >=1 and count6 >=1 and count7>=1:
 			break
 	
 	R1_ave = R1/count1
@@ -68,10 +76,10 @@ def RSSI_ave():
 	R4_ave = R4/count4
 	R5_ave = R5/count5
 	R6_ave = R6/count6
-	
+	R7_ave = R7/count7
 	#print( "RSSI R1:%d R2:%d R3:%d" %(R1,R2,R3))
 	#print( "RSSI R1:%d" %R1)
-	return R1_ave, R2_ave, R3_ave,R4_ave, R5_ave, R6_ave
+	return R1_ave, R2_ave, R3_ave,R4_ave, R5_ave, R6_ave, R7_ave
 def RssiToDistance(rssi):
 	txPower = -30
 	ratio = rssi*1.0/txPower

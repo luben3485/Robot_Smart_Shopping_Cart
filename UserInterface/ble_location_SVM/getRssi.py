@@ -3,11 +3,11 @@ import kalman_filter
 
 feature = []
 y = []
-num = 17
+num = 18
 for i in range(30):
-	print("Fuck:"+str(i+1))
-	R1,R2,R3,R4,R5,R6 = kalman_filter.rssi_kalman_filter()
-	feature.append([R1,R2,R3,R4,R5,R6])
+	print("Order:"+str(i+1))
+	R1,R2,R3,R4,R5,R6,R7 = kalman_filter_six.rssi_kalman_filter()
+	feature.append([R1,R2,R3,R4,R5,R6,R7])
 	y.append([num])
 x = np.array(feature)
 y = np.array(y)
