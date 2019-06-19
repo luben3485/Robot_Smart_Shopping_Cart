@@ -3,7 +3,7 @@
 import sys
 import tty
 import time
-import deque
+from collections import deque
 import serial
 import termios
 from argparse import ArgumentParser
@@ -26,16 +26,24 @@ class Commander(object):
         avoid.obstacleAvoidance(init=True)
         final_instruction = []
         self.print_msg('Start!!!')
+        t1 = time.time()
+        avoidance = 0
         while True:
             try:
                 if len(follow_instruction) > 0:
-                    final_instruction = follow_instruction[0]
+                    final_instruction.append(follow_instruction[0])
                     follow_instruction.clear()
+                                
                 avoidance = avoid.obstacleAvoidance()
                 if avoidance != 0:
-                    final_instruction = [0, avoidance]
+                    final_instruction.clear()
+                    final_instruction.append([0, avoidance])
                     self.print_msg('Avoidance:', 'turn left' if avoidance > 0 else 'turn right')
-                self.motor_control(final_instruction)
+                
+                if len(final_instruction) > 0:
+                    self.motor_control(final_instruction[-1])
+                    final_instruction.clear()
+                time.sleep(0.05)
 
             except KeyboardInterrupt:
                 self.ser.write('0'.encode())

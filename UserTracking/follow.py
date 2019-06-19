@@ -7,7 +7,7 @@ import socket
 import threading
 import numpy as np
 from collections import deque
-import SingleStickSSDwithUSBCamera_OpenVINO_NCS2_robot as SSD
+from . import SingleStickSSDwithUSBCamera_OpenVINO_NCS2_robot as SSD
 import sys
 import termios
 import tty
@@ -78,7 +78,7 @@ class Follow(threading.Thread):
                     if self.connect_motor is True:
                         self.motor_control([self.action_dict[instruction[0]], instruction[1]])
                     else:
-                        self.follow_instruction.appendleft([self.action_dict[instruction[0]], instruction[1]])
+                        self.follow_instruction.appendleft([instruction[1], self.action_dict[instruction[0]]])
                     self.print_msg("Send follow instruction to server!", data)
 
                     if self.display is True:
@@ -154,11 +154,14 @@ class Follow(threading.Thread):
             value = 5
             direction = "right"
         else:
-            value = 18
+            value = 20
         return (direction, int(value))
 
     def keypoint_detect(self, gray):
-        kps, des = self.orb.detectAndCompute(gray, None)
+        try:
+            kps, des = self.orb.detectAndCompute(gray, None)
+        except:
+            return [],[]
         return kps, des
 
     def keypoints_match(self, kp1, des1, kp2, des2):
@@ -265,6 +268,6 @@ class Follow(threading.Thread):
 
 if __name__ == "__main__":
     follow_instruction = deque(maxlen = 5)
-    follow_test = Follow('Follow_test', follow_instruction, connect_motor=True, display=False)
+    follow_test = Follow('Follow_test', follow_instruction, connect_motor=True, display=True)
     print("Start Follow")
     follow_test.start()
