@@ -20,11 +20,11 @@ def speechrecognition():
 		# instead of `r.recognize_google(audio)`
 		result = r.recognize_google(audio, language='zh-TW')
 		print("You said: " + result)
-		product = ['蘋果','洗髮精','泡麵','衣服']	
+		product = ['washing','洗衣機','wash','machine','hi','洗','衣']	
 		for i in range(len(product)):
 			find_value = result.find(product[i])
 			if find_value != -1:
-				return i
+				return 0
 		return -1	
 	except sr.UnknownValueError:
 		print("Google Speech Recognition could not understand audio")

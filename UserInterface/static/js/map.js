@@ -1,5 +1,5 @@
 $(document).ready(function(){
-var timer = setInterval(function(){ajax_func()},2000);
+var timer = setInterval(function(){ajax_func()},4000);
 var game = new Phaser.Game(900, 450, Phaser.AUTO, 'TutContainer', { preload: preload, create: create, update:update });
 var upKey;
 var downKey;
@@ -29,8 +29,11 @@ var levelData=
 [1,0,1,1,8,1,1,1,1]];
 
 //x & y values of the direction vector for character movement
-var pred_x;
-var pred_y;
+var pred_x_pos;
+var pred_y_pos;
+var first_pos_flag=0;
+var pred_x = 4;
+var pred_y = 4;
 var dX=0;
 var dY=0;
 var tileWidth=50;// the width of a tile
@@ -123,12 +126,20 @@ function create() {
     sorcererShadow.alpha=0.4;
     createLevel();
     ajax_func();
-
+	
+	
 }
 
 function update(){
     //check key press
     //detectKeyInput();
+	//console.log(first_pos_flag+" "+ pred_x +" "+ pred_y)
+	//if(first_pos_flag ==0 && pred_x && pred_y){
+    heroMapPos.x = 75 + (pred_x-1)*50;
+    heroMapPos.y = 75 + (pred_y-1)*50;
+
+     //   first_pos_flag = 1;
+	//				}
     pos = predictPos();
 	if(pos == null){
 		dX = 0
@@ -261,9 +272,9 @@ function renderScene(){
             }
         }
     }
-    //normText.text='Customer is on x,y: '+heroMapTile.x +','+heroMapTile.y;
+    normText.text='want to go :'+pred_x +','+pred_y;
     //normText.text='Customer is on x,y: '+Math.round(heroMapPos.x) +','+Math.round(heroMapPos.y);
-    normText.text=''
+    //normText.text=''
 }
 function drawHeroIso(){
     var isoPt= new Phaser.Point();//It is not advisable to create points in update loop
@@ -512,8 +523,8 @@ function predictPos(){
     //pred_x = location.x;
     //pred_y = location.y;
 
-    var pred_x_pos = 75 + (pred_x-1)*50;
-    var pred_y_pos = 75 + (pred_y-1)*50;
+    pred_x_pos = 75 + (pred_x-1)*50;
+    pred_y_pos = 75 + (pred_y-1)*50;
     //console.log(pre_dir)
     if(heroMapPos.x == pred_x_pos && heroMapPos.y == pred_y_pos)
         return [0,0];
@@ -635,7 +646,8 @@ function ajax_func(){
                     location = response;
                     pred_x = location.x;
                     pred_y = location.y;
-                    console.log(location);
+
+					console.log(location);
                 }
           
         });

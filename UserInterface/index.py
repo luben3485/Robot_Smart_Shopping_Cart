@@ -4,7 +4,7 @@ import random
 from flask import Flask,request
 from flask import jsonify
 import utils
-#import audio_recognition
+import audio_recognition
 #import barcode
 import time
 
@@ -19,8 +19,8 @@ def index():
 def Ajax_Audio():
 	test = request.args.get('mode')
 	print('Audio recognition...')
-	#path = audio_recognition.speechrecognition()	
-	path = 0
+	path = audio_recognition.speechrecognition()	
+	#path = 0
 	result = {'path':path}
 	return jsonify(result)
 

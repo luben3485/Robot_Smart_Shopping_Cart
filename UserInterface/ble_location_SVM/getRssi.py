@@ -4,10 +4,10 @@ import kalman_filter
 feature = []
 y = []
 num = 18
-for i in range(30):
-	print("Order:"+str(i+1))
-	R1,R2,R3,R4,R5,R6,R7 = kalman_filter_six.rssi_kalman_filter()
-	feature.append([R1,R2,R3,R4,R5,R6,R7])
+for i in range(100):
+	print("Count:"+str(i+1)+ "Now:"+str(num))
+	R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12 = kalman_filter.rssi_kalman_filter()
+	feature.append([R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12])
 	y.append([num])
 x = np.array(feature)
 y = np.array(y)
