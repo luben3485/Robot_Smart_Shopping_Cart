@@ -4,8 +4,8 @@ import time
 #echo_pin = 24
 #trigger_pin = 14
 #echo_pin = 15
-trigger_pin = [23,25,16,17,10,2]
-echo_pin = [24,8,20,27,9,3]
+trigger_pin = [23,10,16,17,25,2]
+echo_pin = [24,9,20,27,8,3]
 numOfSensor = 6
 distance = [0]*numOfSensor
 count = 1

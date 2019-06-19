@@ -135,7 +135,7 @@ class Follow(threading.Thread):
         pass
 
     def connect_motor_setting(self):
-        self.ser = serial.Serial('/dev/ttyACM1' , 9600)
+        self.ser = serial.Serial('/dev/ttyACM0' , 9600)
         self.old_settings = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
         if(self.ser.isOpen()):

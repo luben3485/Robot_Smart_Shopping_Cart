@@ -17,11 +17,11 @@ class Commander(object):
         self.log = log
     
     def start(self):
-        self.ser = serial.Serial('/dev/ttyACM1' , 9600)
+        self.ser = serial.Serial('/dev/ttyACM0' , 9600)
         self.old_settings = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
         follow_instruction = deque(maxlen = 5)
-        self.follow_thread = follow.Follow(args.name + '_follow', follow_instruction, self.display, self.log)
+        self.follow_thread = follow.Follow(args.name + '_follow', follow_instruction, 0, self.display, self.log)
         self.follow_thread.start()
         avoid.obstacleAvoidance(init=True)
         final_instruction = []
@@ -93,7 +93,7 @@ if __name__ == "__main__":
     parser = ArgumentParser(description='Manage Follow & Avoidence')
     parser.add_argument("-l", "--log", dest="log", default=True)
     parser.add_argument("-n", "--name", dest="name", default='Cart')
-    parser.add_argument("-d", "--display", dest="display", default=False)
+    parser.add_argument("-d", "--display", dest="display", default=True)
     args = parser.parse_args()
     commander = Commander(name=args.name, display=args.display, log=args.log)
     commander.start()
