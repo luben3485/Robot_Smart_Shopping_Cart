@@ -4,57 +4,7 @@ from filterpy.common import Q_discrete_white_noise
 import random
 import time
 import kalman
-
-my_filter1 = KalmanFilter(dim_x=2, dim_z=1)
-my_filter1.x = np.array([-60., -60.])       # initial state (location and velocity)
-my_filter1.F = np.array([[1.,1.], [0.,1.]])    # state transition matrix
-my_filter1.H = np.array([[1.,0.]])    # Measurement function
-my_filter1.P *= 1023.                 # covariance matrix
-my_filter1.R = 32                      # state uncertainty
-my_filter1.Q = Q_discrete_white_noise(2, 1, .125) # process uncertainty
-
-my_filter2 = KalmanFilter(dim_x=2, dim_z=1)
-my_filter2.x = np.array([-60., -60.])       # initial state (location and velocity)
-my_filter2.F = np.array([[1.,1.], [0.,1.]])    # state transition matrix
-my_filter2.H = np.array([[1.,0.]])    # Measurement function
-my_filter2.P *= 1023.                 # covariance matrix
-my_filter2.R = 32                      # state uncertainty
-my_filter2.Q = Q_discrete_white_noise(2, 1, .125) # process uncertainty
-	
-my_filter3 = KalmanFilter(dim_x=2, dim_z=1)
-my_filter3.x = np.array([-60., -60.])       # initial state (location and velocity)
-my_filter3.F = np.array([[1.,1.], [0.,1.]])    # state transition matrix
-my_filter3.H = np.array([[1.,0.]])    # Measurement function
-my_filter3.P *= 1023.                 # covariance matrix
-my_filter3.R = 32                      # state uncertainty
-my_filter3.Q = Q_discrete_white_noise(2, 1, .125) # process uncertainty
-
-my_filter4 = KalmanFilter(dim_x=2, dim_z=1)
-my_filter4.x = np.array([-60., -60.])       # initial state (location and velocity)
-my_filter4.F = np.array([[1.,1.], [0.,1.]])    # state transition matrix
-my_filter4.H = np.array([[1.,0.]])    # Measurement function
-my_filter4.P *= 1023.                 # covariance matrix
-my_filter4.R = 32                      # state uncertainty
-my_filter4.Q = Q_discrete_white_noise(2, 1, .125) # process uncertainty
-
-my_filter5 = KalmanFilter(dim_x=2, dim_z=1)
-my_filter5.x = np.array([-60., -60.])       # initial state (location and velocity)
-my_filter5.F = np.array([[1.,1.], [0.,1.]])    # state transition matrix
-my_filter5.H = np.array([[1.,0.]])    # Measurement function
-my_filter5.P *= 1023.                 # covariance matrix
-my_filter5.R = 32                      # state uncertainty
-my_filter5.Q = Q_discrete_white_noise(2, 1, .125) # process uncertainty
-	
-my_filter6 = KalmanFilter(dim_x=2, dim_z=1)
-my_filter6.x = np.array([-60., -60.])       # initial state (location and velocity)
-my_filter6.F = np.array([[1.,1.], [0.,1.]])    # state transition matrix
-my_filter6.H = np.array([[1.,0.]])    # Measurement function
-my_filter6.P *= 1023.                 # covariance matrix
-my_filter6.R = 32                      # state uncertainty
-my_filter6.Q = Q_discrete_white_noise(2, 1, .125) # process uncertainty
-
-
-
+import kalman_object as ko
 
 def rssi_kalman_filter():
 	#while True:
@@ -64,43 +14,88 @@ def rssi_kalman_filter():
 	total4 = 0
 	total5 = 0
 	total6 = 0
+	total7 = 0
+	total8 = 0
+	total9 = 0
+	total10 = 0
+	total11 = 0
+	total12 = 0
 	num  = 1
 	for i in range(num):
 		print(i)
-		my_filter1.predict()
-		my_filter2.predict()
-		my_filter3.predict()
-		my_filter4.predict()
-		my_filter5.predict()
-		my_filter6.predict()
-		R1, R2, R3,R4,R5,R6 = kalman_six.RSSI_ave_six()
+		ko.f1.predict()
+		ko.f2.predict()
+		ko.f3.predict()
+		ko.f4.predict()
+		ko.f5.predict()
+		ko.f6.predict()
+		ko.f7.predict()
+		ko.f8.predict()
+		ko.f9.predict()
+		ko.f10.predict()
+		ko.f11.predict()
+		ko.f12.predict()
 	
+		R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12 = kalman.RSSI_ave()
 		if R1 != 0:
-			my_filter1.update(R1)
+			ko.f1.update(R1)
 			# do something with the output
-		a = my_filter1.x
+		a = ko.f1.x
 	
 		if R2 != 0:
-			my_filter2.update(R2)
+			ko.f2.update(R2)
 			# do something with the output
-		b = my_filter2.x
+		b = ko.f2.x
 
 		if R3 != 0:
-			my_filter3.update(R3)
+			ko.f3.update(R3)
 			# do something with the output
-		c = my_filter3.x
+		c = ko.f3.x
+		
 		if R4 != 0:
-			my_filter4.update(R4)
+			ko.f4.update(R4)
 			# do something with the output
-		d = my_filter4.x
+		d = ko.f4.x
+		
 		if R5 != 0:
-			my_filter5.update(R5)
+			ko.f5.update(R5)
 			# do something with the output
-		e = my_filter6.x
+		e = ko.f6.x
+		
 		if R6 != 0:
-			my_filter6.update(R6)
+			ko.f6.update(R6)
 			# do something with the output
-		f = my_filter6.x
+		f = ko.f6.x
+		
+		if R7 != 0:
+			ko.f7.update(R7)
+			# do something with the output
+		g = ko.f7.x
+		
+		if R8 != 0:
+			ko.f8.update(R8)
+			# do something with the output
+		h = ko.f8.x
+		
+		if R9 != 0:
+			ko.f9.update(R9)
+			# do something with the output
+		i = ko.f9.x
+		
+		if R10 != 0:
+			ko.f10.update(R10)
+			# do something with the output
+		j = ko.f10.x
+		
+		if R11 != 0:
+			ko.f11.update(R11)
+			# do something with the output
+		k = ko.f11.x
+		
+		if R12 != 0:
+			ko.f12.update(R12)
+			# do something with the output
+		l = ko.f12.x
 		#time.sleep(1)
 		total1 += a[0]
 		total2 += b[0]
@@ -108,11 +103,17 @@ def rssi_kalman_filter():
 		total4 += d[0]
 		total5 += e[0]
 		total6 += f[0]
+		total7 += g[0]
+		total8 += h[0]
+		total9 += i[0]
+		total10 += j[0]
+		total11 += k[0]
+		total12 += l[0]
 		#print("Beacon 1: Before:%d, After:%d, Current Average:%d" %(R1, a[0], total1/(i+1)))
 		#print("Beacon 2: Before:%d, After:%d, Current Average:%d" %(R2, b[0], total2/(i+1)))
 		#print("Beacon 3: Before:%d, After:%d, Current Average:%d" %(R3, c[0], total3/(i+1)))
-	print("Average:%d, %d, %d ,%d ,%d,%d" %(total1/num, total2/num, total3/num, total4/num, total5/num, total6/num))
-	return total1/num, total2/num, total3/num, total4/num, total5/num, total6/num
+	print("Average:%d, %d, %d, %d ,%d ,%d, %d, %d, %d, %d, %d, %d" %(total1/num, total2/num, total3/num, total4/num, total5/num, total6/num, total7/num, total8/num, total9/num, total10/num, total11/num, total12/num))
+	return total1/num, total2/num, total3/num, total4/num, total5/num, total6/num, total7/num, total8/num, total9/num, total10/num, total11/num, total12/num
 
 
 

@@ -3,7 +3,7 @@ import numpy as np
 
 def load_svm(R1,R2,R3,R4,R5,R6,R7):
 	fit = joblib.load('ble_location_SVM/model/svc_20190605.pkl') 
-	x=np.array([[R1,R2,R3,R4,R5,R6,R7]])
+	x=np.array([[R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12]])
 	region = fit.predict(x)[0]
 	print("predict region: %d "%(region))
 	x = 1

@@ -21,6 +21,11 @@ def RSSI():
 	devices = scanner.scan(0.3)
 	devices_selected = []
 	for device in devices:
-		if device.addr == u'12:3b:6a:1b:bb:05' or device.addr == u'12:3b:6a:1b:bb:13' or device.addr==u'12:3b:6a:1b:ba:a5'or device.addr==u'12:3b:6a:1b:bd:c7'or device.addr==u'12:3b:6a:1b:bb:06'or device.addr==u'12:3b:6a:1b:bd:e4' or device.addr == u'12:3b:6a:1b:b5:d8':
+		if device.addr == u'12:3b:6a:1b:bb:05' or device.addr == u'12:3b:6a:1b:bb:13' or \
+			device.addr == u'12:3b:6a:1b:ba:a5' or device.addr == u'12:3b:6a:1b:bd:c7' or \
+			device.addr == u'12:3b:6a:1b:bb:06' or device.addr == u'12:3b:6a:1b:bd:e4' or \
+			device.addr == u'12:3b:6a:1b:b5:d8' or device.addr == u'20:c3:8f:8d:82:d3' or \
+			device.addr == u'20:c3:8f:8d:7e:40' or device.addr == u'20:c3:8f:8d:7c:55' or \
+			device.addr == u'20:c3:8f:8d:7e:31' or device.addr == u'20:c3:8f:8d:91:7e':
 			devices_selected.append(device)
 	return devices_selected

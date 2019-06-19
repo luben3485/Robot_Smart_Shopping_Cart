@@ -130,7 +130,7 @@ function update(){
     //check key press
     //detectKeyInput();
     pos = predictPos();
-	if(pos.length == 0){
+	if(pos == null){
 		dX = 0
 		dY = 0
 	}else{
