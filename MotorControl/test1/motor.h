@@ -14,11 +14,11 @@
 #define ENCODER1 2
 #define ENCODER2 4
 
-#define MAX 200 //積分飽和
-#define MAX_VELOCITY 0.6
+#define MAX 220 //積分飽和
+#define MAX_VELOCITY 0.7
 #define WHEEL_WIDTH 0.48
 #define MAX_SELF_ANGLE 30 //自轉最大角度
-#define MAX_FOLLOW_VELOCITY 20 //跟隨回傳最大速度
+#define MAX_FOLLOW_VELOCITY 30 //跟隨回傳最大速度
 #define MAX_FOLLOW_ANGLE 10 //跟隨回傳最大角度
 
 /*-----maximum calculate follow velocity-----*/

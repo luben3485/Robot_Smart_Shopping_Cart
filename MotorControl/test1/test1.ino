@@ -12,36 +12,37 @@ void setup(){
     Serial.begin(9600);
     EncoderInit();
 
-    //digitalWrite(GPIO1 , HIGH);
-    //digitalWrite(GPIO2 , LOW);
+    digitalWrite(GPIO1 , HIGH);
+    digitalWrite(GPIO2 , LOW);
 }
 
 void loop(){ 
     serial_update();
 
-    //String trans = String(speed2 , 2);
+    //String trans = String(speed1 , 2);
     //char s[10] = {};
     //trans.toCharArray(s,10);
     //s[strlen(s)]='\n';
     //Serial.write(s);
-    //delay(1000);
+    //delay(500);
 
-    //PWM2 = 100;
+    //vcmd1 = 0.6;
+    //PWM1 = 220;
     //Serial.write(speed1);
     //char s[10];
     //sprintf(s , "%lf" , speed1);
     //s[strlen(s)]= '\n';
     //Serial.write(s);
 
-    //analogWrite(MOTOR1 , PWM1);
-    //analogWrite(MOTOR2 , PWM2);
+    analogWrite(MOTOR1 , PWM1);
+    analogWrite(MOTOR2 , PWM2);
 }
 
 void serial_update(){
     static String inString = "";
     bool finish_receive = false;
     if(Serial.available()){
-        delay(10);
+        //delay(10);
         char inChar = Serial.read();
         if(inChar != ' ' && inChar != '\n'){
             inString += (char)inChar;
@@ -49,20 +50,20 @@ void serial_update(){
         else{
             if(inChar == ' '){
                 velocity = inString.toDouble();
-                char result[10]={};
-                inString.toCharArray(result,10);
+                //char result[10]={};
+                //inString.toCharArray(result,10);
                 //sprintf(result,"%lf",velocity);
-                result[strlen(result)]='\n';
-                Serial.write(result);
+                //result[strlen(result)]='\n';
+                //Serial.write(result);
                 inString = "";
             }
             else if(inChar == '\n'){
                 angle = inString.toDouble();
-                char result[10] = {};
-                inString.toCharArray(result,10);
+                //char result[10] = {};
+                //inString.toCharArray(result,10);
                 //sprintf(result,"%lf",angle);
-                result[strlen(result)]='\n';
-                Serial.write(result);
+                //result[strlen(result)]='\n';
+                //Serial.write(result);
                 /*if(angle < 0){
                     Serial.write('h');
                     Serial.write('\n');
@@ -72,20 +73,27 @@ void serial_update(){
             }
         }
     }
+    
+    /*if(finish_receive){
+        vcmd1 = velocity;
+        vcmd2 = velocity;
+        finish_receive = false;
+    }*/
+
 
     if(finish_receive){
         if(velocity == 0){
-            if(angle < 0){
+            if(angle < 0){ //自轉
                 digitalWrite(GPIO1,HIGH);
                 digitalWrite(GPIO2,HIGH);
-                vcmd1 = abs(angle)/MAX_SELF_ANGLE * MAX_VELOCITY;
-                vcmd2 = abs(angle)/MAX_SELF_ANGLE * MAX_VELOCITY;
+                vcmd1 = abs(angle)/MAX_SELF_ANGLE * 0.5;
+                vcmd2 = abs(angle)/MAX_SELF_ANGLE * 0.5;
             }
             else if(angle > 0){
                 digitalWrite(GPIO1,LOW);
                 digitalWrite(GPIO2,LOW);
-                vcmd1 = angle / MAX_SELF_ANGLE * MAX_VELOCITY;
-                vcmd2 = angle / MAX_SELF_ANGLE * MAX_VELOCITY;
+                vcmd1 = angle / MAX_SELF_ANGLE * 0.5;
+                vcmd2 = angle / MAX_SELF_ANGLE * 0.5;
             }
             else if(angle == 0){
                 digitalWrite(GPIO1,HIGH);
