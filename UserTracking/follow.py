@@ -81,8 +81,8 @@ class Follow(threading.Thread):
                     self.print_msg("Can't find target.")
                     self.missing_count += 1
                     if self.missing_count > 8:
-                        direction = self.prev_instruction[0]
-                        if self.prev_instruction[0] is not "right" or self.prev_instruction[0] is not "left":
+                        direction = self.prev_instruction[0][0]
+                        if self.prev_instruction[0][0] is not "right" or self.prev_instruction[0][0] is not "left":
                             direction = "right"
                         data = direction + ' ' + str(0)
                         if self.connect_motor is True:
@@ -91,11 +91,11 @@ class Follow(threading.Thread):
                             self.follow_instruction.appendleft([self.action_dict[direction], 0])
                         self.print_msg("Send follow instruction to server!", data)
                     else:
-                        data = self.prev_instruction[0] + ' ' + str(self.prev_instruction[1])
+                        data = self.prev_instruction[0][0] + ' ' + str(self.prev_instruction[0][1])
                         if self.connect_motor is True:
-                            self.motor_control([self.action_dict[self.prev_instruction[0]], self.prev_instruction[1]])
+                            self.motor_control([self.action_dict[self.prev_instruction[0][0]], self.prev_instruction[0][1]])
                         else:
-                            self.follow_instruction.appendleft([self.action_dict[self.prev_instruction[0]], self.prev_instruction[1]])
+                            self.follow_instruction.appendleft([self.action_dict[self.prev_instruction[0][0]], self.prev_instruction[0][1]])
                         self.print_msg("Send follow instruction to server!", data)
                 else:
                     self.missing_count = 0
@@ -135,7 +135,7 @@ class Follow(threading.Thread):
         pass
 
     def connect_motor_setting(self):
-        self.ser = serial.Serial('/dev/ttyACM0' , 9600)
+        self.ser = serial.Serial('/dev/ttyACM1' , 9600)
         self.old_settings = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
         if(self.ser.isOpen()):
@@ -171,7 +171,7 @@ class Follow(threading.Thread):
         direction = "straight"
         value = 0
         repeat_count = 0
-        tmp = self.prev_instruction[0]
+        tmp = self.prev_instruction[0][0]
         for inst in self.prev_instruction:
             if tmp is inst[0]:
                 repeat_count += 1

@@ -17,7 +17,7 @@ class Commander(object):
         self.log = log
     
     def start(self):
-        self.ser = serial.Serial('/dev/ttyACM0' , 9600)
+        self.ser = serial.Serial('/dev/ttyACM1' , 9600)
         self.old_settings = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
         follow_instruction = deque(maxlen = 5)
