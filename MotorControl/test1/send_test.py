@@ -5,7 +5,7 @@ import termios
 import tty
 import serial
 
-ser = serial.Serial('/dev/ttyACM0' , 9600)
+ser = serial.Serial('/dev/ttyACM1' , 9600)
 old_settings = termios.tcgetattr(sys.stdin)
 tty.setcbreak(sys.stdin.fileno())
 

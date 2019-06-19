@@ -34,7 +34,7 @@ class Commander(object):
                     final_instruction.append(follow_instruction[0])
                     follow_instruction.clear()
                                 
-                avoidance = avoid.obstacleAvoidance()
+                #avoidance = avoid.obstacleAvoidance()
                 if avoidance != 0:
                     final_instruction.clear()
                     final_instruction.append([0, avoidance])
