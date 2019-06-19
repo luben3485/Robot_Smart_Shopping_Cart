@@ -45,6 +45,7 @@ class Follow(threading.Thread):
         self.prev_position = deque(maxlen = 10)
         self.x = 0
         self.y = 0
+        self.match_check = 0
         self.frame_center = [0, 0] # [x, y] frame center point
         self.orb = cv2.ORB.create()
         self.bf = cv2.BFMatcher(normType=cv2.NORM_HAMMING)
@@ -183,6 +184,9 @@ class Follow(threading.Thread):
             return None
         # when number of previous position is less 5
         if len(self.prev_position) < 5:
+            index = 0
+            distance = 999999
+            want = -1
             for target in target_objects:
                 if target.confidence < 0.7:
                     continue
@@ -190,22 +194,60 @@ class Follow(threading.Thread):
                                  (target.box_bottom + target.box_top)/2]
                 # when target center between x-center of frame +- 20%
                 if (target_center[0] <= self.frame_center[0] + self.x * 0.2) and (target_center[0] >= self.frame_center[0] - self.x * 0.2):
-                    # crop target reigon in frame
-                    target_img = frame[target.box_top:target.box_bottom, target.box_left:target.box_right]
-                    self.print_msg("Target shape:", target_img.shape)
-                    if (target_img.shape[0] == 0 or target_img.shape[1] == 0):
-                        continue
-                    kps, des = self.keypoint_detect(cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY))
-                    self.prev_position.append(TargetFeature(target, target_img, [kps, des]))
+                    if abs(target_center[0] - self.frame_center[0]) < distance:
+                        distance = abs(target_center[0] - self.frame_center[0])
+                        want = index
                     return None
+                index += 1
+            if want >= 0:
+                target = target_objects[want]
+                target_img = frame[target.box_top:target.box_bottom, target.box_left:target.box_right]
+                self.print_msg("Target shape:", target_img.shape)
+                if (target_img.shape[0] == 0 or target_img.shape[1] == 0):
+                    return None
+                kps, des = self.keypoint_detect(cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY))
+                self.prev_position.append(TargetFeature(target, target_img, [kps, des]))
             return None
         else:
-            limit_match_points = 5
             result_list = []
             for j in range(len(target_objects)):
                 target = target_objects[j]
                 if target.confidence < 0.7:
                     continue
+                target_img = frame[target.box_top:target.box_bottom, target.box_left:target.box_right]
+                print(target_img.shape)
+                if (target_img.shape[0] == 0 or target_img.shape[1] == 0):
+                    continue
+                time1 = time.time()
+                kps, des = self.keypoint_detect(cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY))
+                print("keypoint detect time:", time.time()-time1)
+                center = [(target.box_left + target.box_right)/2, (target.box_top + target.box_bottom)/2]
+                if self.match_check is 2:
+                    total_points = 0
+                    distance = 0
+                    time1 = time.time()
+                    for i in range(1, 3, 1):
+                        match_points = self.keypoints_match(self.prev_position[-i].keypoints[0], self.prev_position[-i].keypoints[1], kps, des)
+                        total_points += match_points[1]
+                    distance += (np.square(center[0] - self.prev_position[-i].center[0]) + np.square(center[1] - self.prev_position[-i].center[1]))
+                    result_list.append((j, distance, total_points, target_img, [kps, des]))
+                    print("keypoint match time", time.time() - time1)
+                else:
+                    distance += (np.square(center[0] - self.prev_position[-i].center[0]) + np.square(center[1] - self.prev_position[-i].center[1]))
+                    result_list.append((j, distance, total_points, target_img, [kps, des]))
+            if result_list is None:
+                return None
+            if self.match_check is 2:
+                self.match_check = 0
+                result_list = sorted(result_list, key=lambda x: x[2], reverse=True)
+                result_list = sorted(result_list, key=lambda x: x[1])
+                self.prev_position.append(TargetFeature(target_objects[result_list[0][0]], result_list[0][3], result_list[0][4]))
+            else:
+                self.match_check += 1
+                result_list = sorted(result_list, key=lambda x: x[1])
+                self.prev_position.append(TargetFeature(target_objects[result_list[0][0]], result_list[0][3], result_list[0][4]))
+            return TargetFeature(target_objects[result_list[0][0]], result_list[0][3], result_list[0][4])
+            '''
                 target_img = frame[target.box_top:target.box_bottom, target.box_left:target.box_right]
                 print(target_img.shape)
                 if (target_img.shape[0] == 0 or target_img.shape[1] == 0):
@@ -241,6 +283,7 @@ class Follow(threading.Thread):
                 self.prev_position.append(TargetFeature(target_objects[index], final_list[0][4], final_list[0][5]))
                 return TargetFeature(target_objects[index], final_list[0][4], final_list[0][5])
             return None
+            '''
 
     def person_detect(self, frame):
         objects = SSD.SSD_predict(frame)
