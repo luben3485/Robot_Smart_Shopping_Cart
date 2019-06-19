@@ -64,7 +64,7 @@ def rssi_kalman_filter():
 	total4 = 0
 	total5 = 0
 	total6 = 0
-	num  = 5
+	num  = 1
 	for i in range(num):
 		print(i)
 		my_filter1.predict()
@@ -73,7 +73,7 @@ def rssi_kalman_filter():
 		my_filter4.predict()
 		my_filter5.predict()
 		my_filter6.predict()
-		R1, R2, R3,R4,R5,R6 = kalman.RSSI_ave()
+		R1, R2, R3,R4,R5,R6 = kalman_six.RSSI_ave_six()
 	
 		if R1 != 0:
 			my_filter1.update(R1)
