@@ -33,18 +33,22 @@ class TargetFeature(SSD.DetectionObject):
         self.keypoints = keypoint_list
 
 class Follow(threading.Thread):
-    def __init__(self, name, follow_instruction, camera_id = 0, connect_motor=False, display=False):
+    def __init__(self, name, follow_instruction, camera_id = 0, connect_motor=False, display=False, log=False):
         threading.Thread.__init__(self)
         self.id = '[' + name + ']'
         self.follow_instruction = follow_instruction
         self.camera_id = camera_id
         self.connect_motor = connect_motor
         self.display = display
+        self.log = log
         self.decison_socket = None
         self.action_dict = {'straight':0, 'stop':0, 'left':5, 'right':-5}
         self.prev_position = deque(maxlen = 10)
+        self.prev_instruction = deque(maxlen = 10)
         self.x = 0
         self.y = 0
+        self.missing_count = 0
+        self.match_check = 0
         self.frame_center = [0, 0] # [x, y] frame center point
         self.orb = cv2.ORB.create()
         self.bf = cv2.BFMatcher(normType=cv2.NORM_HAMMING)
@@ -55,12 +59,16 @@ class Follow(threading.Thread):
         if self.display is True:    
             cv2.namedWindow("Follow", cv2.WINDOW_NORMAL)
             cv2.resizeWindow("Follow", 640, 360)
+        if self.log is True:
+            self.log_file = open('follow.log', 'w')
 
         self.camera_init(camera_width=960, camera_height=540, camera_fps=30, camera_id = self.camera_id)
         frame = self.get_frame()
         if frame is None:
             self.print_msg("Camera or Video can't open!!!")
             return
+        for i in range(0, 10):
+            self.prev_instruction.appendleft(("stop", 0))
 
         while(True):
             try:
@@ -71,7 +79,26 @@ class Follow(threading.Thread):
                 target = self.target_search(frame, objects)
                 if target is None:
                     self.print_msg("Can't find target.")
+                    self.missing_count += 1
+                    if self.missing_count > 8:
+                        direction = self.prev_instruction[0]
+                        if self.prev_instruction[0] is not "right" or self.prev_instruction[0] is not "left":
+                            direction = "right"
+                        data = direction + ' ' + str(0)
+                        if self.connect_motor is True:
+                            self.motor_control([self.action_dict[direction], 0])
+                        else:
+                            self.follow_instruction.appendleft([self.action_dict[direction], 0])
+                        self.print_msg("Send follow instruction to server!", data)
+                    else:
+                        data = self.prev_instruction[0] + ' ' + str(self.prev_instruction[1])
+                        if self.connect_motor is True:
+                            self.motor_control([self.action_dict[self.prev_instruction[0]], self.prev_instruction[1]])
+                        else:
+                            self.follow_instruction.appendleft([self.action_dict[self.prev_instruction[0]], self.prev_instruction[1]])
+                        self.print_msg("Send follow instruction to server!", data)
                 else:
+                    self.missing_count = 0
                     instruction = self.make_instruction(target)
                     # send instruction
                     data = instruction[0] + ' ' + str(instruction[1])
@@ -80,7 +107,7 @@ class Follow(threading.Thread):
                     else:
                         self.follow_instruction.appendleft([instruction[1], self.action_dict[instruction[0]]])
                     self.print_msg("Send follow instruction to server!", data)
-
+                    self.print_msg("Detect object in total area rate:", target.area / self.x * self.y)
                     if self.display is True:
                         cv2.rectangle(frame, (target.box_left, target.box_top), (target.box_right, target.box_bottom), (0,0,255), 2)
                         cv2.rectangle(frame, (self.prev_position[-2].box_left, self.prev_position[-2].box_top),
@@ -143,16 +170,31 @@ class Follow(threading.Thread):
     def make_instruction(self, target):
         direction = "straight"
         value = 0
-        if target.area > self.x * self.y * 0.45:
+        repeat_count = 0
+        tmp = self.prev_instruction[0]
+        for inst in self.prev_instruction:
+            if tmp is inst[0]:
+                repeat_count += 1
+            else:
+                break
+        if target.area > self.x * self.y * 0.35:
             direction = "stop"
             return (direction, int(value))
         current_position = target.center
         if current_position[0] < self.x * 0.4:
-            value = 5
+            value = 3 + repeat_count + pow(2, repeat_count//3)
             direction = "left"
         elif current_position[0] > self.x * 0.6:
-            value = 5
+            value = 3 + repeat_count + pow(2, repeat_count//3)
             direction = "right"
+        if target.area < self.x * self.y * 0.15:
+            value = 25
+        if target.area < self.x * self.y * 0.25:
+            value = 20
+        if target.area > self.x * self.y * 0.25:
+            value = 15
+        if target.area > self.x * self.y * 0.35:
+            value = 12
         else:
             value = 20
         return (direction, int(value))
@@ -183,6 +225,9 @@ class Follow(threading.Thread):
             return None
         # when number of previous position is less 5
         if len(self.prev_position) < 5:
+            index = 0
+            distance = 999999
+            want = -1
             for target in target_objects:
                 if target.confidence < 0.7:
                     continue
@@ -190,22 +235,60 @@ class Follow(threading.Thread):
                                  (target.box_bottom + target.box_top)/2]
                 # when target center between x-center of frame +- 20%
                 if (target_center[0] <= self.frame_center[0] + self.x * 0.2) and (target_center[0] >= self.frame_center[0] - self.x * 0.2):
-                    # crop target reigon in frame
-                    target_img = frame[target.box_top:target.box_bottom, target.box_left:target.box_right]
-                    self.print_msg("Target shape:", target_img.shape)
-                    if (target_img.shape[0] == 0 or target_img.shape[1] == 0):
-                        continue
-                    kps, des = self.keypoint_detect(cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY))
-                    self.prev_position.append(TargetFeature(target, target_img, [kps, des]))
+                    if abs(target_center[0] - self.frame_center[0]) < distance:
+                        distance = abs(target_center[0] - self.frame_center[0])
+                        want = index
                     return None
+                index += 1
+            if want >= 0:
+                target = target_objects[want]
+                target_img = frame[target.box_top:target.box_bottom, target.box_left:target.box_right]
+                self.print_msg("Target shape:", target_img.shape)
+                if (target_img.shape[0] == 0 or target_img.shape[1] == 0):
+                    return None
+                kps, des = self.keypoint_detect(cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY))
+                self.prev_position.append(TargetFeature(target, target_img, [kps, des]))
             return None
         else:
-            limit_match_points = 5
             result_list = []
             for j in range(len(target_objects)):
                 target = target_objects[j]
                 if target.confidence < 0.7:
                     continue
+                target_img = frame[target.box_top:target.box_bottom, target.box_left:target.box_right]
+                print(target_img.shape)
+                if (target_img.shape[0] == 0 or target_img.shape[1] == 0):
+                    continue
+                time1 = time.time()
+                kps, des = self.keypoint_detect(cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY))
+                print("keypoint detect time:", time.time()-time1)
+                center = [(target.box_left + target.box_right)/2, (target.box_top + target.box_bottom)/2]
+                if self.match_check is 2:
+                    total_points = 0
+                    distance = 0
+                    time1 = time.time()
+                    for i in range(1, 3, 1):
+                        match_points = self.keypoints_match(self.prev_position[-i].keypoints[0], self.prev_position[-i].keypoints[1], kps, des)
+                        total_points += match_points[1]
+                    distance += (np.square(center[0] - self.prev_position[-i].center[0]) + np.square(center[1] - self.prev_position[-i].center[1]))
+                    result_list.append((j, distance, total_points, target_img, [kps, des]))
+                    print("keypoint match time", time.time() - time1)
+                else:
+                    distance += (np.square(center[0] - self.prev_position[-i].center[0]) + np.square(center[1] - self.prev_position[-i].center[1]))
+                    result_list.append((j, distance, total_points, target_img, [kps, des]))
+            if result_list is None:
+                return None
+            if self.match_check is 2:
+                self.match_check = 0
+                result_list = sorted(result_list, key=lambda x: x[2], reverse=True)
+                result_list = sorted(result_list, key=lambda x: x[1])
+                self.prev_position.append(TargetFeature(target_objects[result_list[0][0]], result_list[0][3], result_list[0][4]))
+            else:
+                self.match_check += 1
+                result_list = sorted(result_list, key=lambda x: x[1])
+                self.prev_position.append(TargetFeature(target_objects[result_list[0][0]], result_list[0][3], result_list[0][4]))
+            return TargetFeature(target_objects[result_list[0][0]], result_list[0][3], result_list[0][4])
+            '''
                 target_img = frame[target.box_top:target.box_bottom, target.box_left:target.box_right]
                 print(target_img.shape)
                 if (target_img.shape[0] == 0 or target_img.shape[1] == 0):
@@ -241,6 +324,7 @@ class Follow(threading.Thread):
                 self.prev_position.append(TargetFeature(target_objects[index], final_list[0][4], final_list[0][5]))
                 return TargetFeature(target_objects[index], final_list[0][4], final_list[0][5])
             return None
+            '''
 
     def person_detect(self, frame):
         objects = SSD.SSD_predict(frame)
@@ -265,9 +349,11 @@ class Follow(threading.Thread):
 
     def print_msg(self, *args):
         print(self.id, " ".join(map(str, args)))
+        if self.log is True:
+            self.log.write(self.id, " ".join(map(str, args)))
 
 if __name__ == "__main__":
     follow_instruction = deque(maxlen = 5)
-    follow_test = Follow('Follow_test', follow_instruction, connect_motor=True, display=True)
+    follow_test = Follow('Follow_test', follow_instruction, connect_motor=True, display=False, log=False)
     print("Start Follow")
     follow_test.start()

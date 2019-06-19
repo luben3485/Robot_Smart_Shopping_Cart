@@ -1,5 +1,5 @@
 $(document).ready(function(){
-var timer = setInterval(function(){ajax_func()},5000);
+var timer = setInterval(function(){ajax_func()},2000);
 var game = new Phaser.Game(900, 450, Phaser.AUTO, 'TutContainer', { preload: preload, create: create, update:update });
 var upKey;
 var downKey;
@@ -130,9 +130,14 @@ function update(){
     //check key press
     //detectKeyInput();
     pos = predictPos();
-    dX = pos[0];
-    dY = pos[1];
-    /*
+	if(pos.length == 0){
+		dX = 0
+		dY = 0
+	}else{
+		dX = pos[0];
+    	dY = pos[1];
+    }
+	/*
     if(pos[0]==0){
         if(pos[1]>0){
             facing = "south";
@@ -257,8 +262,8 @@ function renderScene(){
         }
     }
     //normText.text='Customer is on x,y: '+heroMapTile.x +','+heroMapTile.y;
-    normText.text='Customer is on x,y: '+Math.round(heroMapPos.x) +','+Math.round(heroMapPos.y);
-    
+    //normText.text='Customer is on x,y: '+Math.round(heroMapPos.x) +','+Math.round(heroMapPos.y);
+    normText.text=''
 }
 function drawHeroIso(){
     var isoPt= new Phaser.Point();//It is not advisable to create points in update loop
@@ -618,12 +623,12 @@ function ajax_func(){
                 url: '/predictLocation',
                 type: 'GET',
                 cache:false,
-                async:false,
+                //async:false,
                 data: {
                     'mode':1,
                 },
                 error: function(xhr) {
-                    alert('Ajax request 發生錯誤');
+                    console.log('location Ajax request 發生錯誤');
                 },
                 success: function(response) {
                     //alert("ajax success");
@@ -640,5 +645,60 @@ function ajax_func(){
     //pred_y = location.y;
     //console.log(location);
 };
+
+var Ajax_Barcode = function(){
+      $.ajax({
+                url: '/Ajax_Barcode',
+                type: 'GET',
+                data: {
+                    'mode':1,
+                },
+                error: function(xhr) {
+                    console.log('barcode Ajax request 發生錯誤');
+                },
+                success: function(response) {
+                    alert(response.barcodeData)
+                }
+
+        });
+    };
+
+  var ajax_audio = function(){
+      $.ajax({
+                url: '/Ajax_Audio',
+                type: 'GET',
+                data: {
+                    'mode':1,
+                },
+                error: function(xhr) {
+                    console.log('Ajax Audio 發生錯誤');
+                },
+                success: function(response) {
+					IsNavigation = 1;
+					line = response.path;
+                		
+				}
+
+        });
+    };
+
+	$('#search').click(function(){
+        ajax_audio()
+    });
+    $('#scan').click(function(){
+        //Ajax_Barcode()
+    });
+
+     $('#canel').click(function(){
+		IsNavigation = 0;
+    });
+    $('#showpos').click(function(){
+        alert('customer is on x:'+pred_x + '  y:' +pred_y)
+    	//normText.text='Customer is on x,y: '+ pred_x+',' + pred_y;
+		//setTimeout('normText.text=""',3000);
+	});
+
+
+
     
 }); //document ready

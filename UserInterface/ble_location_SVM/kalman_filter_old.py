@@ -3,7 +3,7 @@ from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
 import random
 import time
-import kalman_six
+import kalman
 
 my_filter1 = KalmanFilter(dim_x=2, dim_z=1)
 my_filter1.x = np.array([-60., -60.])       # initial state (location and velocity)
@@ -62,7 +62,7 @@ my_filter7.R = 32                      # state uncertainty
 my_filter7.Q = Q_discrete_white_noise(2, 1, .125) # process uncertainty
 
 
-def rssi_kalman_filter_six():
+def rssi_kalman_filter():
 	#while True:
 	total1 = 0
 	total2 = 0
@@ -81,7 +81,7 @@ def rssi_kalman_filter_six():
 		my_filter5.predict()
 		my_filter6.predict()
 		my_filter7.predict()
-		R1, R2, R3, R4, R5, R6, R7 = kalman_six.RSSI_ave_six()
+		R1, R2, R3, R4, R5, R6, R7 = kalman_six.RSSI_ave()
 	
 		if R1 != 0:
 			my_filter1.update(R1)

@@ -16,6 +16,8 @@ def obstacleAvoidance(init = False):
                 distanceKalman[i] = pre[i] 
             pre[i] = distanceKalman[i]
     '''     
+    
+    
     if bubbleRebound.checkObstacles(distanceKalman):
         turnAngle = bubbleRebound.calculateAngle(distanceKalman)
         return turnAngle
