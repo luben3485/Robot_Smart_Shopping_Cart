@@ -13,6 +13,7 @@ while True:
     #    print("after sensor %d %f" % (i,distanceKalman[i]))	
     if bubbleRebound.checkObstacles(distanceKalman):
         turnAngle = bubbleRebound.calculateAngle(distanceKalman)
+        #turnAngle = bubbleRebound.calculateAngle(determineDistance.distance)
         print("turnAngle:%f" % turnAngle)
     else:
         print("turnAngle:(safe)")

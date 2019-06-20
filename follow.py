@@ -82,8 +82,7 @@ class Follow(threading.Thread):
                 if target is None:
                     self.print_msg("Can't find target.")
                     self.missing_count += 1
-                    self.print_msg("Missing count: ", self.missing_count)
-                    if self.missing_count > 40:
+                    if self.missing_count > 8:
                         direction = self.prev_instruction[0][0]
                         if self.prev_instruction[0][0] is not "right" or self.prev_instruction[0][0] is not "left":
                             if len(self.prev_position) < 5:
@@ -110,13 +109,13 @@ class Follow(threading.Thread):
                     data = instruction[0] + ' ' + str(instruction[1])
                     if self.connect_motor is True:
                         self.motor_control([self.action_dict[instruction[0]], instruction[1]])
-                        self.prev_instruction.appendleft([instruction[0], instruction[1]])
+                        self.prev_instruction.appendleft([self.action_dict[instruction[0]], instruction[1]])
                     else:
                         self.follow_instruction.appendleft([instruction[1], self.action_dict[instruction[0]]])
-                        self.prev_instruction.appendleft([instruction[0], instruction[1]])
+                        self.prev_instruction.appendleft([self.action_dict[instruction[0]], instruction[1]])
                     self.print_msg("Send follow instruction to server!", data)
                     self.print_msg("Detect object in total area rate:", target.area / (self.x * self.y))
-                    # self.print_msg("Frame & x & y:", target.box_left, target.box_right-target.box_left, target.box_top, target.box_bottom-target.box_top , self.x, self.y)
+                    self.print_msg("Frame & x & y:", target.box_left, target.box_right-target.box_left, target.box_top, target.box_bottom-target.box_top , self.x, self.y)
                     self.print_msg("It takes %s second to make instruction.\n" % str(time.time() - start_time))
                     if self.display is True:
                         cv2.rectangle(frame, (target.box_left, target.box_top), (target.box_right, target.box_bottom), (0,0,255), 2)
@@ -127,8 +126,8 @@ class Follow(threading.Thread):
                         cv2.circle(frame, (int(target.center[0]), int(target.center[1])), 7, (0,0,255), -1)
                 if self.display is True:
                     cv2.line(frame, (int(self.x/2), 0), (int(self.x/2), self.y), (0,232,240), 3)
-                    cv2.line(frame, (int(self.x * 0.35), 0), (int(self.x * 0.35), self.y), (27,211,218), 2)
-                    cv2.line(frame, (int(self.x * 0.65), 0), (int(self.x * 0.65), self.y), (27,211,218), 2)
+                    cv2.line(frame, (int(self.x * 0.4), 0), (int(self.x * 0.4), self.y), (27,211,218), 2)
+                    cv2.line(frame, (int(self.x * 0.6), 0), (int(self.x * 0.6), self.y), (27,211,218), 2)
                     for i in range(len(self.prev_position)-1, -1, -1):
                         if self.prev_position[i-1] is None or self.prev_position[i] is None:
                             continue
@@ -192,17 +191,17 @@ class Follow(threading.Thread):
             direction = "stop"
             return (direction, int(value))
         elif target.area < self.x * self.y * 0.05:
-            value = 23
-        elif target.area < self.x * self.y * 0.20:
-            value = 21
+            value = 25
+        elif target.area < self.x * self.y * 0.10:
+            value = 20
+        elif target.area > self.x * self.y * 0.25:
+            value = 15
         elif target.area > self.x * self.y * 0.30:
-            value = 16
-        #elif target.area > self.x * self.y * 0.30:
-        #    value = 12
+            value = 12
         else:
-            value = 19
+            value = 18
         current_position = target.center
-        if current_position[0] < self.x * 0.35:
+        if current_position[0] < self.x * 0.4:
             repeat_count = 0
             direction = "left"
             tmp = direction
@@ -211,9 +210,8 @@ class Follow(threading.Thread):
                     repeat_count += 1
                 else:
                     break
-            value = 4 + repeat_count-1 + pow(2, repeat_count//4)
-            value = 6
-        elif current_position[0] > self.x * 0.65:
+            value = 3 + repeat_count-1 + pow(2, repeat_count//4)
+        elif current_position[0] > self.x * 0.6:
             repeat_count = 0
             direction = "right"
             tmp = direction
@@ -222,9 +220,7 @@ class Follow(threading.Thread):
                     repeat_count += 1
                 else:
                     break
-            value = 4 + repeat_count-1 + pow(2, repeat_count//4)
-            value = 6
-        self.print_msg("Repeat count:", repeat_count)
+            value = 3 + repeat_count-1 + pow(2, repeat_count//4)
         return (direction, int(value))
 
     def keypoint_detect(self, gray):
@@ -317,6 +313,43 @@ class Follow(threading.Thread):
                 result_list = sorted(result_list, key=lambda x: x[1])
                 self.prev_position.append(TargetFeature(target_objects[result_list[0][0]], result_list[0][3], result_list[0][4]))
             return TargetFeature(target_objects[result_list[0][0]], result_list[0][3], result_list[0][4])
+            '''
+                target_img = frame[target.box_top:target.box_bottom, target.box_left:target.box_right]
+                print(target_img.shape)
+                if (target_img.shape[0] == 0 or target_img.shape[1] == 0):
+                    continue
+                gray = cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY)
+                time1 = time.time()
+                kps, des = self.keypoint_detect(gray)
+                print("keypoint detect time:", time.time()-time1)
+                # temp condition
+                count = 0
+                total_points = 0
+                distance = 0
+                center = [(target.box_left + target.box_right)/2, (target.box_top + target.box_bottom)/2]
+                time1 = time.time()
+                for i in range(1, 3, 1):
+                    match_points = self.keypoints_match(self.prev_position[-i].keypoints[0], self.prev_position[-i].keypoints[1], kps, des)
+                    total_points += match_points[1]
+                    if match_points[1] > limit_match_points:
+                        count += 1
+                    distance += (np.square(center[0] - self.prev_position[-i].center[0]) + np.square(center[1] - self.prev_position[-i].center[1]))
+                result_list.append((j, distance, total_points, count, target_img, [kps, des]))
+                print("keypoint match time", time.time() - time1)
+            if result_list is None:
+                return None
+            distance_list = sorted(result_list, key=lambda x: x[1])
+            points_list = []
+            for i in range(len(distance_list)):
+                if distance_list[0][1] / distance_list[i][1] > 0.85:
+                    points_list.append(distance_list[i])
+            final_list = sorted(points_list, key=lambda x: x[2], reverse=True)
+            if len(final_list) > 0:
+                index = final_list[0][0]
+                self.prev_position.append(TargetFeature(target_objects[index], final_list[0][4], final_list[0][5]))
+                return TargetFeature(target_objects[index], final_list[0][4], final_list[0][5])
+            return None
+            '''
 
     def person_detect(self, frame):
         objects = SSD.SSD_predict(frame)
@@ -327,9 +360,9 @@ class Follow(threading.Thread):
         self.cap.set(cv2.CAP_PROP_FPS, camera_fps)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, camera_width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, camera_height)
-        self.x = int(camera_width)
-        self.y = int(camera_height)
-        self.frame_center = [int(camera_width) // 2, int(camera_height) // 2]
+        self.x = int(camera_width / 4 * 3)
+        self.y = int(camera_height / 4 * 3)
+        self.frame_center = [int(camera_width / 4 * 3) // 2, int(camera_height / 4 * 3) // 2]
         self.print_msg(self.x , self.y, self.frame_center)
 
     def get_frame(self):

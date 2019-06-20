@@ -44,5 +44,5 @@ if __name__ == "__main__":
 	    count+=1
 	    for i in range(len(distance)):
 		    print("cm=%f" % distance[i])
-	    time.sleep(1)
+	    time.sleep(0.1)
 

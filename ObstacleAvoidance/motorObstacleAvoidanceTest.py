@@ -47,7 +47,7 @@ if(ser.isOpen()):
             distanceKalman = kalman.kalmanFilter(determineDistance.distance)
             
             #distanceKalman = determineDistance.distance
-            
+            ''' 
             if(ini ==0):
                 pre = determineDistance.distance
                 ini +=1
@@ -56,7 +56,7 @@ if(ser.isOpen()):
                     if abs(pre[i]-determineDistance.distance[i]) >=70:
                         distanceKalman[i] = pre[i] 
                     pre[i] = distanceKalman[i]
-            
+            '''
             for i in range(len(distanceKalman)):
                 print("after sensor %d %f" % (i,distanceKalman[i]))	
             if bubbleRebound.checkObstacles(distanceKalman):
