@@ -1,6 +1,6 @@
 #include "motor.h"
 /*-----maximum calculate follow velocity-----*/
-const double MAX_FOLLOW_CAL_VELOCITY  = 22.4;//MAX_FOLLOW_VELOCITY + (WHEEL_WIDTH/2) * MAX_FOLLOW_ANGLE
+const double MAX_FOLLOW_CAL_VELOCITY  = 32.4;//MAX_FOLLOW_VELOCITY + (WHEEL_WIDTH/2) * MAX_FOLLOW_ANGLE
 
 //const int reso = 9;
 const double rad = 0.3490658504;//一格
